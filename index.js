@@ -15,6 +15,7 @@ import master from "./routes/master.router.js";
 import operationMaster from "./routes/operationMaster.router.js";
 import inspection from "./routes/inspection.js";
 import report from "./routes/report.router.js"
+import audit from "./auditManagement/audit.js";
 
 dotenv.config();
 const app = express();
@@ -48,8 +49,13 @@ app.use("/operationMaster", operationMaster);
 app.use("/inspection", inspection);
 app.use("/report", report);
 
+app.use("/audit", audit)
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+app.use('/auditManagement/uploads', express.static(path.join(__dirname, 'auditManagement/uploads')));
+app.use('/auditManagement/template', express.static(path.join(__dirname, 'auditManagement/template')))
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -73,7 +79,7 @@ const upload = multer({
     const filetypes = /jpeg|jpg|png|gif|pdf/;
     const mimetype = filetypes.test(file.mimetype);
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    
+
     if (mimetype && extname) {
       return cb(null, true);
     }
@@ -95,7 +101,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     if (response.rowsAffected[0] == 1) {
       res.status(201).json({ status: "success" });
     }
-  } catch (error) {}
+  } catch (error) { }
 });
 
 app.post("/uploadfile", upload.single("file"), async (req, res) => {
@@ -109,7 +115,7 @@ app.post("/uploadfile", upload.single("file"), async (req, res) => {
     if (response.rowsAffected[0] == 1) {
       res.status(201).json({ status: "success" });
     }
-  } catch (error) {}
+  } catch (error) { }
 });
 
 app.post("/uploadphoto", upload.single("file"), async (req, res) => {
@@ -125,7 +131,7 @@ app.post("/uploadphoto", upload.single("file"), async (req, res) => {
       console.log(`response sent`);
       res.status(201).json({ status: "success" });
     }
-  } catch (error) {}
+  } catch (error) { }
 });
 
 app.post("/uploadlogo", upload.single("file"), async (req, res) => {
