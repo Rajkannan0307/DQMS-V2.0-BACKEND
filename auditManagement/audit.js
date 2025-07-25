@@ -251,14 +251,13 @@ audit.post('/checksheet/insert', memoryUpload.single('file'), verifyJWT, async (
             .query(`
                 select * from Mst_Audit_Checksheet 
                 WHERE Audit_Id = @Audit_Id
-                AND LOWER(Checksheet_Name) = LOWER(@Checksheet_Name)
 		        AND Plant = @Plant
 		        AND Department = @Department`
             )
         // .query(`
         //     select * from Mst_Audit_Checksheet 
         //     WHERE Audit_Id = @Audit_Id
-        //     AND Checksheet_Name = @Checksheet_Name
+        //     AND LOWER(Checksheet_Name) = LOWER(@Checksheet_Name)
         //     AND Plant = @Plant
         //     AND Department = @Department`
         // )
@@ -402,28 +401,34 @@ audit.put('/checksheet/update', verifyJWT, async (req, res) => {
         const dbChecksheetName = checkSheetNameValidation?.Checksheet_Name?.trim().toLowerCase();
         const inputChecksheetName = Checksheet_Name?.trim().toLowerCase();
 
-        if (dbChecksheetName !== inputChecksheetName) {
-            const validation = await pool.request()
-                .input('Audit_Id', checkSheetNameValidation?.Audit_Id)
-                .input('Checksheet_Name', Checksheet_Name?.trim())
-                .input('Plant', checkSheetNameValidation?.Plant)
-                .input('Department', checkSheetNameValidation?.Department)
-                .query(`
-            SELECT * FROM Mst_Audit_Checksheet 
-            WHERE Audit_Id = @Audit_Id
-              AND LOWER(Checksheet_Name) = LOWER(@Checksheet_Name)
-              AND Plant = @Plant
-              AND Department = @Department
-        `);
+        // if (dbChecksheetName !== inputChecksheetName) {
+        //     const validation = await pool.request()
+        //         .input('Audit_Id', checkSheetNameValidation?.Audit_Id)
+        //         .input('Checksheet_Name', Checksheet_Name?.trim())
+        //         .input('Plant', checkSheetNameValidation?.Plant)
+        //         .input('Department', checkSheetNameValidation?.Department)
+        //         .query(`
+        //                 SELECT * FROM Mst_Audit_Checksheet 
+        //                 WHERE Audit_Id = @Audit_Id
+        //                 AND Plant = @Plant
+        //                 AND Department = @Department
+        //          `);
+        //     // .query(`
+        //     //         SELECT * FROM Mst_Audit_Checksheet 
+        //     //         WHERE Audit_Id = @Audit_Id
+        //     //         AND LOWER(Checksheet_Name) = LOWER(@Checksheet_Name)
+        //     //         AND Plant = @Plant
+        //     //         AND Department = @Department
+        //     //  `);
 
-            console.log(validation.recordset, "VALIDATION");
+        //     console.log(validation.recordset, "VALIDATION");
 
-            if (validation.recordset.length > 0) {
-                return res.status(500).json({
-                    message: 'A checksheet with this name already exists.',
-                });
-            }
-        }
+        //     if (validation.recordset.length > 0) {
+        //         return res.status(500).json({
+        //             message: 'A checksheet with this name already exists.',
+        //         });
+        //     }
+        // }
 
         const checkSheetUpdate = await pool.request()
             .input('Audit_Checksheet_Id', Audit_Checksheet_Id)
@@ -555,10 +560,6 @@ audit.put('/checksheet/status_update', verifyJWT, async (req, res) => {
     }
 })
 
-//=========CHECKSHEET END=============
-
-
-
 
 //=========CHECKLIST START==========
 
@@ -609,5 +610,24 @@ audit.get('/department/:plant_id', verifyJWT, async (req, res) => {
     }
 })
 
+
+// ========= Employee details 
+
+audit.get('/employee', verifyJWT, async (req, res) => {
+    try {
+        const plantId = req.query?.plant_id;
+        const deptId = req.query?.dept_id;
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('plant_id', plantId)
+            .input('dept_id', deptId)
+            .query('select * from mst_employees where plant_id = @plant_id AND dept_id = @dept_id AND del_status = 0');
+        return res.status(200).json({ success: true, data: result.recordset });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, data: 'Internal server error' })
+    }
+})
 
 export default audit;

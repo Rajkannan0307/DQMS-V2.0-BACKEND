@@ -16,6 +16,7 @@ import operationMaster from "./routes/operationMaster.router.js";
 import inspection from "./routes/inspection.js";
 import report from "./routes/report.router.js"
 import audit from "./auditManagement/audit.js";
+import auditSchedule from "./auditManagement/auditSchedule.js";
 
 dotenv.config();
 const app = express();
@@ -49,7 +50,8 @@ app.use("/operationMaster", operationMaster);
 app.use("/inspection", inspection);
 app.use("/report", report);
 
-app.use("/audit", audit)
+app.use("/audit", audit);
+app.use("/auditSchedule", auditSchedule)
 
 
 const __filename = fileURLToPath(import.meta.url);
