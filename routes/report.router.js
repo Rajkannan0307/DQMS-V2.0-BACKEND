@@ -33,7 +33,7 @@ report.get('/Part_Number', verifyJWT, async (req, res) => {
 
         const pool = await poolPromise;
         const result = await pool.request()
-            // .input('plant', Plant)
+            .input('plant', Plant)
             .input('Insp', Insp)
             .input('From', From)
             .input('To', To)
