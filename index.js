@@ -17,6 +17,7 @@ import inspection from "./routes/inspection.js";
 import report from "./routes/report.router.js"
 import audit from "./auditManagement/audit.js";
 import auditSchedule from "./auditManagement/auditSchedule.js";
+import auditStatus from "./auditManagement/auditStatus.js";
 
 dotenv.config();
 const app = express();
@@ -50,14 +51,16 @@ app.use("/operationMaster", operationMaster);
 app.use("/inspection", inspection);
 app.use("/report", report);
 
+// Audit Management
 app.use("/audit", audit);
 app.use("/auditSchedule", auditSchedule)
-
+app.use("/auditStatus", auditStatus)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 app.use('/auditManagement/uploads', express.static(path.join(__dirname, 'auditManagement/uploads')));
 app.use('/auditManagement/template', express.static(path.join(__dirname, 'auditManagement/template')))
+
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

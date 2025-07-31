@@ -64,10 +64,11 @@ login.get("/userDetails", verifyJWT, async (req, res) => {
     let { genid } = req.query;
     let pool = await poolPromise;
     let userDetails = await pool.request()
-      .query(`select e.*,p.plant_name,c.company_name,d.dept_name,c.company_id from mst_employees as e
+      .query(`select e.*,p.plant_name,c.company_name,d.dept_name,c.company_id,role.role_name from mst_employees as e
         join mst_plant as p on p.plant_id = e.plant_id
         join mst_company as c on c.company_id=p.company_id
         join mst_department as d on d.dept_id=e.dept_id
+        join mst_role as role on role.role_id = e.role_id
         where gen_id='${genid}' and e.del_status=0`);
     let menu_access = await pool
       .request()

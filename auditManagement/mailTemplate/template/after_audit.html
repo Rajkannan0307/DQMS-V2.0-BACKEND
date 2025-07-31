@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title></title>
+  </head>
+  <body style="font-size: small">
+    <h4 style="font-size: medium">Dear Team,</h4>
+
+    <p>
+      This is to inform you that the
+      <span style="font-weight: bold">{{ auditTypeName }}</span> for [ {{
+      dept_name }} / {{ audit_name }} ] has been successfully completed.
+    </p>
+
+    <p>
+      The audit report, including any non-conformities (NCs), observations, and
+      recommendations, has been uploaded to the
+      <span style="font-weight: bold">DQMS portal</span> for your reference.
+    </p>
+    <p>
+      Kindly review the report at your earliest convenience. All necessary
+      actions related to NCs and observations should be tracked and closed
+      within the defined timelines through the DQMS system.
+    </p>
+    <p>For any clarification or support, please feel free to reach out.</p>
+    <p>Thank you for your cooperation during the audit.</p>
+    <p>Best Regards,</p>
+    <p style="font-weight: bold">{{ regardsBy }}</p>
+  </body>
+</html>

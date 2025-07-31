@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title></title>
+  </head>
+  <body style="font-size: small">
+    <h4 style="font-size: medium">Dear Team,</h4>
+
+    <p>
+      This is to inform you that the
+      <span style="font-weight: bold">{{ audit_name }}</span> has been scheduled
+      as follows:
+    </p>
+
+    <ul>
+      <li>
+        <span style="font-weight: bold">Audit Date:</span> {{ fromDate }} to {{
+        toDate }}
+      </li>
+      <li>
+        <span style="font-weight: bold">Audit Duration:</span> {{ mandays }}
+        Manday (Based on audit days From and To Date)
+      </li>
+      <li>
+        <span style="font-weight: bold">Auditor: </span> [Mentioned in the DQMS
+        / Attachment]
+      </li>
+      <li>
+        <span style="font-weight: bold">Scope: </span> [Available in the DQMS /
+        Attachment]
+      </li>
+    </ul>
+
+    <p>
+      The <span style="font-weight: bold">audit schedule</span> and the
+      <span style="font-weight: bold">department-wise assessment sheet</span>
+      are now available in the
+      <span style="font-weight: bold">DQMS portal</span> under the path:
+    </p>
+    <p style="font-weight: bold">DQMS → Audit Management → Perform Audit</p>
+
+    <p>All concerned teams are requested to:</p>
+
+    <ul>
+      <li>Review the audit schedule and plan your availability accordingly.</li>
+      <li>Go through the assessment sheet relevant to your function.</li>
+      <li>
+        Ensure readiness of required documents, records, and evidence of
+        compliance.
+      </li>
+    </ul>
+
+    <p>
+      Please treat this with high priority. Your cooperation and preparedness
+      are key to ensuring a successful audit outcome.
+    </p>
+    <p>For any clarifications, feel free to reach out.</p>
+    <p>Best Regards,</p>
+    <p style="font-weight: bold">{{ regardsBy }}</p>
+  </body>
+</html>
