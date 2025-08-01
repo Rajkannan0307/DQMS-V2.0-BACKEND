@@ -1,7 +1,7 @@
 import { Router } from "express";
 import verifyJWT from "../middleware/auth.js";
 import poolPromise from "../db.js";
-import { scheduleStatusEnum } from "./auditSchedule.js";
+import { scheduleStatusEnum, trnParticipantRoleEnum } from "./auditSchedule.js";
 import generateTemplate from "./mailTemplate/generateTemplate.js";
 import nodemailer from "nodemailer";
 
@@ -40,6 +40,7 @@ let mailconfig = nodemailer.createTransport({
 });
 
 
+
 const auditStatus = Router()
 
 // We will get the audit schedule deatils all data based on auditType
@@ -49,7 +50,8 @@ auditStatus.get("/get", verifyJWT, async (req, res) => {
         const reqQuery = req.query;
         const auditTypeId = reqQuery?.auditTypeId
         const status = reqQuery?.status
-
+        const isAuditeeView = reqQuery?.isAuditeeView;
+        console.log(isAuditeeView, "isAuditeeView")
 
         const pool = await poolPromise;
         // Get the schedule header data
@@ -68,11 +70,12 @@ auditStatus.get("/get", verifyJWT, async (req, res) => {
         if (scheduleHeaderIds?.length <= 0) {
             return res.status(200).json({ success: true, data: [] });
         }
-
-
+        // TODO:
+        const roleAudit = isAuditeeView === 'true' ? trnParticipantRoleEnum.Auditee : trnParticipantRoleEnum.Auditor
         const participantResult = await pool.request()
             .input("gen_id", userId)
-            .input("role", 'Auditor')
+            .input("role", roleAudit)
+            // .input("role", trnParticipantRoleEnum.Auditor)
             .query(`
                     SELECT 
                     *
@@ -120,7 +123,7 @@ auditStatus.get("/get", verifyJWT, async (req, res) => {
                             e.emp_name
                         FROM trn_audit_participants p
                         INNER JOIN mst_employees e ON e.gen_id = p.gen_id
-                        WHERE p.schedule_detail_id = sd.schedule_detail_id AND p.role = 'auditor'
+                        WHERE p.schedule_detail_id = sd.schedule_detail_id AND p.role = '${trnParticipantRoleEnum.Auditor}'
                         FOR JSON PATH
                     ) AS auditors,
 
@@ -131,7 +134,7 @@ auditStatus.get("/get", verifyJWT, async (req, res) => {
                             e.emp_name
                         FROM trn_audit_participants p
                         INNER JOIN mst_employees e ON e.gen_id = p.gen_id
-                        WHERE p.schedule_detail_id = sd.schedule_detail_id AND p.role = 'auditee'
+                        WHERE p.schedule_detail_id = sd.schedule_detail_id AND p.role = '${trnParticipantRoleEnum.Auditee}'
                         FOR JSON PATH
                     ) AS auditees
 
@@ -191,7 +194,8 @@ auditStatus.get("/view-results", verifyJWT, async (req, res) => {
                         WHERE Audit_Id=@Audit_Id AND Plant=@Plant AND Department=@Department AND Active_Status=1
                     `)
 
-        // console.log(result?.recordset);
+
+        console.log(result?.recordset);
 
         if (result?.recordset?.length <= 0) {
             return res.status(200).json({ success: true, data: [], message: "Checksheet is empty for this Audit_Id, Plant, Department" });
@@ -214,6 +218,7 @@ auditStatus.get("/view-results", verifyJWT, async (req, res) => {
                             AND Active_Status=1
                     `)
 
+        console.log(checkpointResult?.recordset, "checkpointResult")
         console.log(checkpointResult?.recordset?.length, "checkpointResult")
 
         return res.status(200).json({ success: true, data: checkpointResult?.recordset, checksheetData: checksheet });

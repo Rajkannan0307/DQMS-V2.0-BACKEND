@@ -27,6 +27,12 @@ export const scheduleStatusEnum = {
 }
 
 
+export const trnParticipantRoleEnum = {
+    Auditor: "Auditor",
+    Auditee: "Auditee"
+}
+
+
 let mailconfig = nodemailer.createTransport({
     host: "3.109.243.162",
     port: 25,
@@ -94,8 +100,8 @@ auditSchedule.put('/header_update', verifyJWT, async (req, res) => {
         const pool = await poolPromise;
         const result = await pool.request()
             .input('schedule_id', schedule_id)
-            .input('plant_id', plant_id)
-            .input('audit_type_id', audit_type_id)
+            // .input('plant_id', plant_id)
+            // .input('audit_type_id', audit_type_id)
             .input('audit_name', audit_name)
             .input('audit_date', audit_date)
             .input('modify_by', userId)      // assumed variable exists
@@ -139,7 +145,7 @@ auditSchedule.get('/getDetails', verifyJWT, async (req, res) => {
                             e.emp_name
                         FROM trn_audit_participants p
                         INNER JOIN mst_employees e ON e.gen_id = p.gen_id
-                        WHERE p.schedule_detail_id = sd.schedule_detail_id AND p.role = 'auditor'
+                        WHERE p.schedule_detail_id = sd.schedule_detail_id AND p.role = '${trnParticipantRoleEnum.Auditor}'
                         FOR JSON PATH
                     ) AS auditors,
 
@@ -150,7 +156,7 @@ auditSchedule.get('/getDetails', verifyJWT, async (req, res) => {
                             e.emp_name
                         FROM trn_audit_participants p
                         INNER JOIN mst_employees e ON e.gen_id = p.gen_id
-                        WHERE p.schedule_detail_id = sd.schedule_detail_id AND p.role = 'auditee'
+                        WHERE p.schedule_detail_id = sd.schedule_detail_id AND p.role = '${trnParticipantRoleEnum.Auditee}'
                         FOR JSON PATH
                     ) AS auditees
 
@@ -164,6 +170,7 @@ auditSchedule.get('/getDetails', verifyJWT, async (req, res) => {
             auditors: JSON.parse(row.auditors || '[]'),
             auditees: JSON.parse(row.auditees || '[]')
         }));
+
 
         return res.status(200).json({ success: true, data: finalResult });
     } catch (error) {
@@ -374,7 +381,7 @@ auditSchedule.post('/details_insert', verifyJWT, async (req, res) => {
         auditeeTable.create = true;
         auditeeTable.columns.add('gen_id', sql.VarChar(10), { nullable: false });
         // data is int of gen_id
-        for (var data of auditors) {
+        for (var data of auditees) {
             auditeeTable.rows.add(data)
         }
         await pool.request().bulk(auditeeTable);
@@ -422,7 +429,7 @@ auditSchedule.put('/details_update', verifyJWT, async (req, res) => {
         if (currentStatus === scheduleStatusEnum.completed) {
             return res.status(400).json({
                 success: false,
-                data: "Cannot cancel. Schedule is already completed."
+                data: "Cannot edit. Schedule is already completed."
             });
         }
 
@@ -448,14 +455,15 @@ auditSchedule.put('/details_update', verifyJWT, async (req, res) => {
         auditeeTable.create = true;
         auditeeTable.columns.add('gen_id', sql.VarChar(10), { nullable: false });
         // data is int of gen_id
-        for (var data of auditors) {
+        for (var data of auditees) {
             auditeeTable.rows.add(data)
         }
         await pool.request().bulk(auditeeTable);
 
 
-        console.log("REACHED", auditeeTable?.rows)
-        console.log("REACHED", auditorTable?.rows)
+        console.log("REACHED Auditees", auditeeTable?.rows)
+        console.log("REACHED Auditors", auditorTable?.rows)
+        // return res.status(500).json({ success: false, data: 'Internal server error' });
 
         const result = await pool.request()
             .input('schedule_detail_id', schedule_detail_id)

@@ -162,6 +162,13 @@ audit.get('/checksheet/get/:auditId', verifyJWT, async (req, res) => {
     }
 })
 
+/***
+ * 
+ * 1. Read the xlsx file convert to json, validate -> valid column header, empty column data
+ * 2. PlantId, dept_id and audit id -> these pair unique data only allowed
+ * 3. after insert the data using sql insert procedure ( Mst_Audit_Checksheet_INSERT )
+ * 
+ */
 audit.post('/checksheet/insert', memoryUpload.single('file'), verifyJWT, async (req, res) => {
     try {
         // console.log(req.file)
@@ -459,66 +466,6 @@ audit.put('/checksheet/update', verifyJWT, async (req, res) => {
                     .execute('Mst_Audit_Checkpoint_UPDATE');
             })
         );
-
-        // // console.log(checkSheetInsert, "CHECKSHEET DATA");
-        // console.log(body);
-
-
-        // if (!checkSheetInsert?.recordset) {
-        //     return res.status(500).json({
-        //         message: 'Failed to create the audit checksheet. Please try again.',
-        //     });
-        // }
-
-        // console.log(checkSheetInsert?.recordset)
-
-        // // CHECK LIST BULK UPLAOD BASED ON CHECKLIST
-        // const checSheetRecordset = checkSheetInsert?.recordset[0]
-
-        // // const checkListRequest = pool.request();
-        // // const table = new sql.Table("#AuditCheckSheet");
-        // const table = new sql.Table('#AuditCheckList');
-        // table.create = true;
-        // table.columns.add('Audit_Checksheet_Id', sql.Int, { nullable: false });
-        // table.columns.add('Major_Clause', sql.VarChar(sql.MAX), { nullable: false });
-        // table.columns.add('Sub_Clause', sql.VarChar(sql.MAX), { nullable: false });
-        // table.columns.add('Check_Point', sql.VarChar(sql.MAX), { nullable: false });
-        // table.columns.add('Rev_No', sql.Int, { nullable: false });
-        // table.columns.add('Active_Status', sql.Bit, { nullable: false });
-        // table.columns.add('Created_By', sql.VarChar(50), { nullable: false });
-        // table.columns.add('Modify_By', sql.VarChar(50), { nullable: false });
-
-        // validData.forEach((element) => {
-        //     table.rows.add(
-        //         checSheetRecordset?.Audit_Checksheet_Id,
-        //         element?.Major_Clause,
-        //         element?.Sub_Clause,
-        //         element?.Check_Point,
-        //         checSheetRecordset?.Rev_No,
-        //         1,
-        //         userId,
-        //         userId
-        //     )
-        // })
-
-        // console.log('rows', table);
-        // // console.log('columns', table.columns);
-        // // console.log('table', table);
-        // const insertData = await pool.request().bulk(table);
-        // const resp = await pool.request()
-        //     // .input('Checkpoints', table)
-        //     .execute('Mst_Audit_Checkpoint_INSERT');
-        // console.log('insertdata', insertData);
-        // console.log('resp', resp);
-
-        // return res.status(200).json({
-        //     success: true,
-        //     Message: 'Checklist Created Successfully',
-        //     checkSheetData: checkSheetInsert?.recordset || null,
-        //     data: jsonData,
-        //     checKListEmptyData: emptyData,
-        //     checkListValidData: validData,
-        // });
 
         return res.status(200).json({ success: true, checSheet: checkSheetUpdate?.recordset });
     } catch (error) {
