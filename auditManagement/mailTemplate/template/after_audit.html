@@ -8,10 +8,15 @@
   <body style="font-size: small">
     <h4 style="font-size: medium">Dear Team,</h4>
 
-    <p>
+    <!-- <p>
       This is to inform you that the
       <span style="font-weight: bold">{{ auditTypeName }}</span> for [ {{
       dept_name }} / {{ audit_name }} ] has been successfully completed.
+    </p> -->
+    <p>
+      This is to inform you that the
+      <span style="font-weight: bold">{{ dept_name }} department</span> {{
+      auditTypeName }} - {{ audit_name }} has been successfully completed.
     </p>
 
     <p>
@@ -19,6 +24,7 @@
       recommendations, has been uploaded to the
       <span style="font-weight: bold">DQMS portal</span> for your reference.
     </p>
+    <p style="font-weight: bold">DQMS → Audit Management → Audit Result</p>
     <p>
       Kindly review the report at your earliest convenience. All necessary
       actions related to NCs and observations should be tracked and closed
@@ -26,7 +32,21 @@
     </p>
     <p>For any clarification or support, please feel free to reach out.</p>
     <p>Thank you for your cooperation during the audit.</p>
+    <a href="{{ applicationLink }}" style="font-weight: bold"
+      >DQMS APPLICATION LINK</a
+    >
     <p>Best Regards,</p>
     <p style="font-weight: bold">{{ regardsBy }}</p>
+
+    <div
+      style="width: 100%; height: 1px; background: #b6b6b6; margin: 16px 0"
+    ></div>
+
+    <div style="color: #db7272; font-size: 14px; margin: 0">
+      <p>
+        This is an automated notification from the DQMS. Don't reply to this
+        sender mail id.
+      </p>
+    </div>
   </body>
 </html>

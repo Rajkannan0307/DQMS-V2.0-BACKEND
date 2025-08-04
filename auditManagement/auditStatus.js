@@ -23,7 +23,9 @@ const TableName = {
 
     trn_audit_result: "trn_audit_result",
 
-    trn_auditor_comments: "trn_auditor_comments"
+    trn_auditor_comments: "trn_auditor_comments",
+
+    mst_plant: "mst_plant"
 }
 
 let mailconfig = nodemailer.createTransport({
@@ -324,6 +326,22 @@ auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
 
         // MAIL SENDING SECTION
 
+        const shResult = await pool.request()
+            .input("schedule_id", schedule_id)
+            .query(`
+                    SELECT
+                    sh.audit_type_id,
+                    sh.plant_id,
+                    sh.audit_name AS schedularName,
+                    auditType.Audit_Name,
+                    mp.plant_name
+                    FROM ${TableName.Trn_sudit_schedule_header} AS sh
+                    JOIN ${TableName.Mst_Digital_Audit_Type} AS auditType ON auditType.Audit_Id=sh.audit_type_id
+                    JOIN ${TableName.mst_plant} AS mp ON mp.plant_id=sh.plant_id
+                    WHERE schedule_id = @schedule_id
+                `)
+
+        const scheduleHeader = shResult?.recordset[0];
 
         console.log(userId, "userId")
 
@@ -337,12 +355,12 @@ auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
                 `)
 
         const currentUser = currentUserResult?.recordset[0];
-        const auditTypeResult = await pool.request()
-            .input('Audit_Id', audit_type_id)
-            .query(`
-                    SELECT * FROM ${TableName.Mst_Digital_Audit_Type}
-                    WHERE Audit_Id = @Audit_Id
-                `)
+        // const auditTypeResult = await pool.request()
+        //     .input('Audit_Id', audit_type_id)
+        //     .query(`
+        //             SELECT * FROM ${TableName.Mst_Digital_Audit_Type}
+        //             WHERE Audit_Id = @Audit_Id
+        //         `)
 
 
         //TO EMAIL DATA
@@ -379,10 +397,12 @@ auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
 
         const htmlData = generateTemplate({
             variables: {
-                auditTypeName: auditTypeResult?.recordset[0]?.Audit_Name,
+                auditTypeName: scheduleHeader?.Audit_Name, //it's a audit type name
                 dept_name: dept_name,
                 audit_name: audit_name,
-                regardsBy: currentUser?.emp_name
+                regardsBy: currentUser?.emp_name,
+                // applicationLink: "https://www.google.com"
+                applicationLink: "http://10.51.10.225/5173" //TODO: need to update
             },
             fileName: "after_audit.html"
         })
@@ -392,7 +412,8 @@ auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
             from: "noreplyrml@ranegroup.com",
             to: toMails,
             cc: uniqueCCEmails,
-            subject: `${auditTypeResult?.recordset[0]?.Audit_Name} _ ${plant_id} - ${audit_name} _ ${dept_name}`,
+            // subject: `${auditTypeResult?.recordset[0]?.Audit_Name} _ ${plant_id} - ${audit_name} _ ${dept_name}`,
+            subject: `${scheduleHeader?.plant_name} _ ${scheduleHeader?.Audit_Name} _ ${scheduleHeader?.schedularName} [${dept_name || ""}]`,
             html: htmlData
         }
 

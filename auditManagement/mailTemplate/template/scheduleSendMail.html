@@ -10,8 +10,10 @@
 
     <p>
       This is to inform you that the
-      <span style="font-weight: bold">{{ audit_name }}</span> has been scheduled
-      as follows:
+      <span style="font-weight: bold"
+        >{{ audit_type_name }} - {{ audit_name }}</span
+      >
+      has been scheduled as follows:
     </p>
 
     <ul>
@@ -21,11 +23,15 @@
       </li>
       <li>
         <span style="font-weight: bold">Audit Duration:</span> {{ mandays }}
-        Manday (Based on audit days From and To Date)
+        <!-- (Based on audit days From and To Date) -->
       </li>
       <li>
-        <span style="font-weight: bold">Auditor: </span> [Mentioned in the DQMS
-        / Attachment]
+        <span style="font-weight: bold">Auditor: </span> {{ auditorsList }}
+        <!-- [Mentioned in the DQMS / Attachment] -->
+      </li>
+      <li>
+        <span style="font-weight: bold">Auditee: </span> {{ auditeesList }}
+        <!-- [Mentioned in the DQMS / Attachment] -->
       </li>
       <li>
         <span style="font-weight: bold">Scope: </span> [Available in the DQMS /
@@ -57,7 +63,23 @@
       are key to ensuring a successful audit outcome.
     </p>
     <p>For any clarifications, feel free to reach out.</p>
+
+    <a href="{{ applicationLink }}" style="font-weight: bold"
+      >DQMS APPLICATION LINK</a
+    >
+
     <p>Best Regards,</p>
     <p style="font-weight: bold">{{ regardsBy }}</p>
+
+    <div
+      style="width: 100%; height: 1px; background: #b6b6b6; margin: 16px 0"
+    ></div>
+
+    <div style="color: #db7272; font-size: 14px; margin: 0">
+      <p>
+        This is an automated notification from the DQMS. Don't reply to this
+        sender mail id.
+      </p>
+    </div>
   </body>
 </html>

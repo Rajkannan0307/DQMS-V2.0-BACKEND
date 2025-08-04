@@ -17,7 +17,8 @@ const TableName = {
     mst_department: "mst_department",
     mst_employees: "mst_employees",
 
-    Mst_Digital_Audit_Type: "Mst_Digital_Audit_Type"
+    Mst_Digital_Audit_Type: "Mst_Digital_Audit_Type",
+    mst_plant: "mst_plant"
 }
 
 export const scheduleStatusEnum = {
@@ -225,6 +226,9 @@ auditSchedule.post('/send-mail', verifyJWT, async (req, res) => {
 
         const auditees = auditUsers?.filter((e) => e?.role === "Auditee")
         const auditors = auditUsers?.filter((e) => e?.role === "Auditor")
+        // Get list of gen_ids
+        const auditeeIds = auditees.map((e) => e?.gen_id);
+        const auditorIds = auditors.map((e) => e?.gen_id);
 
         const formattedList1 = auditors.map((e) => `'${e?.gen_id}'`).join(", ");
         const formattedList2 = auditees.map((e) => `'${e?.gen_id}'`).join(", ");
@@ -236,6 +240,16 @@ auditSchedule.post('/send-mail', verifyJWT, async (req, res) => {
                                 WHERE gen_id IN (${formattedList1}) OR gen_id IN (${formattedList2})
                             `)
         const employees = empResult?.recordset;
+
+        const auditorsList = employees
+            .filter((emp) => auditorIds.includes(emp?.gen_id))
+            .map((e) => e.emp_name)
+            .join(" | ") || "N/A";
+
+        const auditeesList = employees
+            .filter((emp) => auditeeIds.includes(emp?.gen_id))
+            .map((e) => e.emp_name)
+            .join(" | ") || "N/A";
 
         const toMails = employees?.map((e) => e?.email);
         console.log("employees", toMails);
@@ -250,9 +264,11 @@ auditSchedule.post('/send-mail', verifyJWT, async (req, res) => {
                     sh.audit_type_id,
                     sh.plant_id,
                     sh.audit_name AS schedularName,
-                    auditType.Audit_Name
+                    auditType.Audit_Name,
+                    mp.plant_name
                     FROM ${TableName.Trn_sudit_schedule_header} AS sh
                     JOIN ${TableName.Mst_Digital_Audit_Type} AS auditType ON auditType.Audit_Id=sh.audit_type_id
+                    JOIN ${TableName.mst_plant} AS mp ON mp.plant_id=sh.plant_id
                     WHERE schedule_id = @schedule_id
                 `)
 
@@ -314,20 +330,28 @@ auditSchedule.post('/send-mail', verifyJWT, async (req, res) => {
 
         const htmlData = generateTemplate({
             variables: {
-                audit_name: scheduleHeader?.Audit_Name,
+                audit_type_name: scheduleHeader?.Audit_Name,
+                audit_name: scheduleHeader?.schedularName,
                 fromDate: dateInfo.fromDate,
                 toDate: dateInfo.toDate,
-                mandays: dateInfo.mandays,
+                mandays: `${dateInfo.mandays} ${dateInfo.mandays > 1 ? "Mandays" : "Manday"
+                    }`,
                 regardsBy: currentUser?.emp_name,
+                auditorsList: auditorsList,
+                auditeesList: auditeesList,
+                // applicationLink: "https://www.google.com" //TODO: need to update
+                applicationLink: "http://10.51.10.225:5173/" //
             },
             fileName: 'scheduleSendMail.html'
         })
 
+        console.log(scheduleHeader)
         const mailPayload = {
             from: "noreplyrml@ranegroup.com",
             to: toMails,
             cc: ccMails,
-            subject: `${scheduleHeader?.Audit_Name} _ ${scheduleHeader?.plant_id} - ${scheduleHeader?.schedularName}`,
+            // subject: `${scheduleHeader?.Audit_Name} _ ${scheduleHeader?.plant_id} - ${scheduleHeader?.schedularName}`,
+            subject: `${scheduleHeader?.plant_name} _ ${scheduleHeader?.Audit_Name} _ ${scheduleHeader?.schedularName}`,
             html: htmlData
         }
 
@@ -421,7 +445,7 @@ auditSchedule.put('/details_update', verifyJWT, async (req, res) => {
             .query(`
             SELECT status FROM ${TableName.Trn_audit_schedule_details} 
             WHERE schedule_detail_id = @schedule_detail_id
-        `);
+            `);
 
         const currentStatus = checkResult?.recordset[0]?.status;
 
@@ -497,7 +521,7 @@ auditSchedule.put('/remarks-update', verifyJWT, async (req, res) => {
             .query(`
             SELECT status FROM ${TableName.Trn_audit_schedule_details} 
             WHERE schedule_detail_id = @schedule_detail_id
-        `);
+            `);
 
         const currentStatus = checkResult?.recordset[0]?.status;
 
@@ -518,12 +542,12 @@ auditSchedule.put('/remarks-update', verifyJWT, async (req, res) => {
             .query(`
                     UPDATE ${TableName.Trn_audit_schedule_details} 
                     SET 
-                    remarks = @remarks, 
-                    status = @status,
-                    modify_by = @modify_by,
-                    modify_on = @modify_on
+                    remarks = @remarks,
+            status = @status,
+            modify_by = @modify_by,
+            modify_on = @modify_on
                     WHERE schedule_detail_id = @schedule_detail_id
-                `)
+            `)
         return res.status(200).json({ success: true, data: result?.recordset });
     } catch (error) {
         console.error(error);
@@ -558,11 +582,11 @@ auditSchedule.get("/view-checkpoints", verifyJWT, async (req, res) => {
             .input('Plant', plantId)
             .input('Department', deptId)
             .query(`
-                    SELECT 
-                    *
-                    FROM ${TableName.Mst_Audit_Checksheet} 
-                    WHERE Audit_Id=@Audit_Id AND Plant=@Plant AND Department=@Department AND Active_Status=1
-                `)
+                    SELECT
+            *
+            FROM ${TableName.Mst_Audit_Checksheet} 
+                    WHERE Audit_Id = @Audit_Id AND Plant = @Plant AND Department = @Department AND Active_Status = 1
+            `)
 
         // console.log(result?.recordset);
 
@@ -576,11 +600,11 @@ auditSchedule.get("/view-checkpoints", verifyJWT, async (req, res) => {
             .request()
             .input('Audit_Checksheet_Id', checksheet?.Audit_Checksheet_Id)
             .query(`
-                    SELECT 
-                    *
-                    FROM ${TableName.Mst_Audit_Checkpoint} 
-                    WHERE Audit_Checksheet_Id=@Audit_Checksheet_Id AND Active_Status=1
-                `)
+                    SELECT
+            *
+            FROM ${TableName.Mst_Audit_Checkpoint} 
+                    WHERE Audit_Checksheet_Id = @Audit_Checksheet_Id AND Active_Status = 1
+            `)
 
         console.log(checkpointResult?.recordset?.length, "checkpointResult")
 
