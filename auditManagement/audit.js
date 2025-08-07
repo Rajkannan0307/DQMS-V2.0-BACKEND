@@ -6,6 +6,7 @@ import * as path from "path";
 import { fileURLToPath } from "url";
 import fs from 'fs';
 import xlsx from 'xlsx';
+import { TableName } from "./utils/utils.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -570,6 +571,24 @@ audit.get('/employee', verifyJWT, async (req, res) => {
             .input('plant_id', plantId)
             .input('dept_id', deptId)
             .query('select * from mst_employees where plant_id = @plant_id AND dept_id = @dept_id AND del_status = 0');
+        return res.status(200).json({ success: true, data: result.recordset });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, data: 'Internal server error' })
+    }
+})
+
+
+audit.get('/emp_auditor', verifyJWT, async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .query(`
+                    SELECT
+                    * 
+                    FROM ${TableName.mst_employees} 
+                    WHERE is_auditor=1 AND del_status=0
+                `);
         return res.status(200).json({ success: true, data: result.recordset });
     } catch (error) {
         console.error(error);

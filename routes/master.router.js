@@ -25,8 +25,8 @@ master.get("/companylist", verifyJWT, async (req, res) => {
       .query(
         `select company_id,company_name from mst_company where del_status=0`
       );
-      console.log('resp', response);
-      
+    console.log('resp', response);
+
     res.status(200).json(response.recordset);
   } catch (error) {
     console.error(error);
@@ -39,9 +39,8 @@ master.post("/company", verifyJWT, async (req, res) => {
     let { company_code, company_name, deleted, user } = req.body;
     const pool = await poolPromise;
     let query = `insert into mst_company(company_id,company_name,created_by,created_on,del_status)
-        values(${company_code},'${company_name}','${user}',current_timestamp,${
-      deleted == false ? 0 : 1
-    })`;
+        values(${company_code},'${company_name}','${user}',current_timestamp,${deleted == false ? 0 : 1
+      })`;
     const response = await pool.request().query(query);
     if (response.rowsAffected[0] == 1) {
       res.status(201).json({ status: "success" });
@@ -57,9 +56,8 @@ master.put("/company", verifyJWT, async (req, res) => {
   try {
     let { company_code, company_name, deleted, user } = req.body;
     const pool = await poolPromise;
-    let query = `update mst_company set company_name='${company_name}',del_status=${
-      deleted == false ? 0 : 1
-    },modified_by='${user}',modified_on=current_timestamp where company_id=${company_code}`;
+    let query = `update mst_company set company_name='${company_name}',del_status=${deleted == false ? 0 : 1
+      },modified_by='${user}',modified_on=current_timestamp where company_id=${company_code}`;
     const response = await pool.request().query(query);
     if (response.rowsAffected[0] == 1) {
       res.status(202).json({ status: "success" });
@@ -143,9 +141,8 @@ master.post("/plant", verifyJWT, async (req, res) => {
       req.body;
     const pool = await poolPromise;
     let query = `insert into mst_plant(company_id,plant_id,plant_name,plant_address,created_by,created_on,del_status)
-          values(${company_id},'${plant_id}','${plant_name}','${plant_address}','${user}',current_timestamp,${
-      deleted == false ? 0 : 1
-    })`;
+          values(${company_id},'${plant_id}','${plant_name}','${plant_address}','${user}',current_timestamp,${deleted == false ? 0 : 1
+      })`;
     const response = await pool.request().query(query);
     if (response.rowsAffected[0] == 1) {
       res.status(201).json({ status: "success" });
@@ -161,9 +158,8 @@ master.put("/plant", verifyJWT, async (req, res) => {
     let { company_id, plant_id, plant_name, plant_address, deleted, user } =
       req.body;
     const pool = await poolPromise;
-    let query = `update mst_plant set company_id='${company_id}',plant_id=${plant_id},plant_name='${plant_name}',plant_address='${plant_address}',del_status=${
-      deleted == false ? 0 : 1
-    },modified_by='${user}',modified_on=current_timestamp where plant_id=${plant_id}`;
+    let query = `update mst_plant set company_id='${company_id}',plant_id=${plant_id},plant_name='${plant_name}',plant_address='${plant_address}',del_status=${deleted == false ? 0 : 1
+      },modified_by='${user}',modified_on=current_timestamp where plant_id=${plant_id}`;
     console.log(query);
     const response = await pool.request().query(query);
     if (response.rowsAffected[0] == 1) {
@@ -220,9 +216,8 @@ master.post("/department", verifyJWT, async (req, res) => {
   try {
     let { dept_name, plant_id, deleted, user } = req.body;
     const pool = await poolPromise;
-    let query = `insert into mst_department(dept_name,plant_id,created_by,created_on,del_status) values('${dept_name}','${plant_id}','${user}',CURRENT_TIMESTAMP,${
-      deleted == false ? 0 : 1
-    })`;
+    let query = `insert into mst_department(dept_name,plant_id,created_by,created_on,del_status) values('${dept_name}','${plant_id}','${user}',CURRENT_TIMESTAMP,${deleted == false ? 0 : 1
+      })`;
     const response = await pool.request().query(query);
     if (response.rowsAffected[0] == 1) {
       res.status(201).json({ status: "success" });
@@ -237,9 +232,8 @@ master.put("/department", verifyJWT, async (req, res) => {
   try {
     let { dept_name, plant_id, deleted, user, dept_id } = req.body;
     const pool = await poolPromise;
-    let query = `update mst_department set dept_name='${dept_name}',del_status=${
-      deleted ? 1 : 0
-    },modified_by='${user}',modified_on=CURRENT_TIMESTAMP where dept_id=${dept_id}`;
+    let query = `update mst_department set dept_name='${dept_name}',del_status=${deleted ? 1 : 0
+      },modified_by='${user}',modified_on=CURRENT_TIMESTAMP where dept_id=${dept_id}`;
     const response = await pool.request().query(query);
     if (response.rowsAffected[0] == 1) {
       res.status(201).json({ status: "success" });
@@ -315,8 +309,7 @@ master.put("/module", verifyJWT, async (req, res) => {
     const response = await pool
       .request()
       .query(
-        `update mst_module set module_name='${module_name}',del_status=${
-          deleted ? 1 : 0
+        `update mst_module set module_name='${module_name}',del_status=${deleted ? 1 : 0
         },modified_by='${user}',modified_on=CURRENT_TIMESTAMP where module_id='${id}'`
       );
     if (response.rowsAffected[0] == 1) {
@@ -347,8 +340,8 @@ master.get("/modulelist", verifyJWT, async (req, res) => {
 master.get("/modulesbyplant", verifyJWT, async (req, res) => {
   try {
     let { plant_id } = req.query;
-    console.log('plant',req.query);
-    
+    console.log('plant', req.query);
+
     const pool = await poolPromise;
     const response = await pool
       .request()
@@ -389,8 +382,7 @@ master.put("/line", async (req, res) => {
     const response = await pool
       .request()
       .query(
-        `update mst_line set line_name='${line_name}',del_status=${
-          deleted ? 1 : 0
+        `update mst_line set line_name='${line_name}',del_status=${deleted ? 1 : 0
         },modified_by='${user}',modified_on=CURRENT_TIMESTAMP where line_id='${id}'`
       );
     if (response.rowsAffected[0] == 1) {
@@ -418,7 +410,7 @@ master.post("/line", verifyJWT, async (req, res) => {
 });
 
 master.get("/linelist", async (req, res) => {
- 
+
   try {
     const { dept_id, plant_id, module_id } = req.query;
     console.log('plant-line-list', req.query);
@@ -498,8 +490,7 @@ master.put("/machineType", verifyJWT, async (req, res) => {
     const response = await pool
       .request()
       .query(
-        `update mst_machine_type set machine_type_name='${machine_type_name}',del_status=${
-          deleted ? 1 : 0
+        `update mst_machine_type set machine_type_name='${machine_type_name}',del_status=${deleted ? 1 : 0
         },modified_by='${user}',modified_on=CURRENT_TIMESTAMP where machine_type_id='${id}'`
       );
     if (response.rowsAffected[0] == 1) {
@@ -597,7 +588,7 @@ master.post("/machine", verifyJWT, async (req, res) => {
 
     const DupMachine = DuplicateCheck.recordset[0].DupMachine;
 
-    if(DupMachine>0) {
+    if (DupMachine > 0) {
       console.log("Machine Already Available");
       res.status(201).json({ message: "Machine Already Available" });
     } else {
@@ -609,7 +600,7 @@ master.post("/machine", verifyJWT, async (req, res) => {
       }
     }
 
-    
+
   } catch (error) {
     console.error(error);
     res.status(400).json(error);
@@ -632,8 +623,7 @@ master.put("/machine", verifyJWT, async (req, res) => {
     const response = await pool
       .request()
       .query(
-        `update mst_machine set plant_id='${plant_id}',dept_id='${dept_id}',line_id='${line_id}',machine_type_id='${machine_type_id}',machine_name='${machine_name}',del_status=${
-          deleted ? 1 : 0
+        `update mst_machine set plant_id='${plant_id}',dept_id='${dept_id}',line_id='${line_id}',machine_type_id='${machine_type_id}',machine_name='${machine_name}',del_status=${deleted ? 1 : 0
         },modified_by='${user}',modified_on=CURRENT_TIMESTAMP where machine_id='${machine_id}'`
       );
     if (response.rowsAffected[0] == 1) {
@@ -917,7 +907,7 @@ master.get("/employees", verifyJWT, async (req, res) => {
   try {
     const pool = await poolPromise;
     const response = await pool.request()
-      .query(`select emp_id,gen_id,emp_name,mobile_no,email,plant_name,e.role_id,r.role_name,e.level,e.plant_id,dept_name,e.dept_id,line_name,e.line_id,designation,e.del_status from mst_employees as  e
+      .query(`select emp_id,gen_id,emp_name,mobile_no,email,plant_name,e.role_id,r.role_name,e.level,e.plant_id,dept_name,e.dept_id,line_name,e.line_id,designation,e.del_status,e.is_auditor from mst_employees as  e
               join mst_plant as p on p.plant_id = e.plant_id
               join mst_department as d on d.dept_id = e.dept_id
               join mst_line as l on l.line_id = e.line_id
@@ -973,11 +963,12 @@ master.post("/employees", verifyJWT, async (req, res) => {
       line_id,
       level,
       designation,
+      is_auditor
     } = req.body;
     const pool = await poolPromise;
     const response = await pool.request().query(
-      `insert into mst_employees (gen_id,emp_name,mobile_no,email,plant_id,dept_id,line_id,level,role_id,designation,created_by,created_on,del_status)
-        values('${gen_id}','${emp_name}','${mobile_no}','${email}','${plant_id}','${dept_id}','${line_id}','${level}','${role_id}','${designation}','${user}',CURRENT_TIMESTAMP,0)`
+      `insert into mst_employees (gen_id,emp_name,mobile_no,email,plant_id,dept_id,line_id,level,role_id,designation,created_by,created_on,del_status,is_auditor)
+        values('${gen_id}','${emp_name}','${mobile_no}','${email}','${plant_id}','${dept_id}','${line_id}','${level}','${role_id}','${designation}','${user}',CURRENT_TIMESTAMP,0,${is_auditor})`
     );
     if (response.rowsAffected[0] == 1) {
       res.status(201).json({ status: "success" });
@@ -1021,14 +1012,15 @@ master.put("/employees", verifyJWT, async (req, res) => {
       designation,
       emp_id,
       deleted,
+      is_auditor
     } = req.body;
+    console.log(is_auditor, "is_auditor")
     const pool = await poolPromise;
     const response = await pool.request().query(
       `update mst_employees set  role_id='${role_id}',emp_name='${emp_name}',mobile_no='${mobile_no}',email='${email}',
       dept_id='${dept_id}',line_id='${line_id}',level='${level}',designation='${designation}',modified_by='${user}',
-      modified_on=CURRENT_TIMESTAMP,del_status=${
-        deleted ? 1 : 0
-      } where emp_id='${emp_id}'`
+      modified_on=CURRENT_TIMESTAMP,del_status=${deleted ? 1 : 0
+      }, is_auditor=${is_auditor} where emp_id='${emp_id}'`
     );
     if (response.rowsAffected[0] == 1) {
       res.status(201).json({ status: "success" });
@@ -1134,9 +1126,8 @@ master.put("/customergroup", verifyJWT, async (req, res) => {
     const pool = await poolPromise;
     const response = await pool.request().query(
       `update mst_customer_group set customer_group_name='${customer_group_name}',modified_by='${user}',
-        modified_on=CURRENT_TIMESTAMP,del_status=${
-          deleted ? 1 : 0
-        } where customer_group_id=${customer_group_id}`
+        modified_on=CURRENT_TIMESTAMP,del_status=${deleted ? 1 : 0
+      } where customer_group_id=${customer_group_id}`
     );
     if (response.rowsAffected[0] == 1) {
       res.status(201).json({ status: "success" });
@@ -1239,16 +1230,14 @@ master.put("/customer", verifyJWT, async (req, res) => {
       deleted,
     } = req.body;
     console.log(
-      `update mst_customer set customer_group_id='${customer_group_id}',customer_code='${customer_code}',customer_location='${customer_location}',customer_spoc='${customer_spoc}',customer_email='${customer_email}',modified_by='${user}',modified_on=CURRENT_TIMESTAMP,del_status=${
-        deleted ? 1 : 0
+      `update mst_customer set customer_group_id='${customer_group_id}',customer_code='${customer_code}',customer_location='${customer_location}',customer_spoc='${customer_spoc}',customer_email='${customer_email}',modified_by='${user}',modified_on=CURRENT_TIMESTAMP,del_status=${deleted ? 1 : 0
       } where customer_id=${customer_id}`
     );
     const pool = await poolPromise;
     const response = await pool
       .request()
       .query(
-        `update mst_customer set customer_group_id='${customer_group_id}',customer_code='${customer_code}',customer_location='${customer_location}',customer_spoc='${customer_spoc}',customer_email='${customer_email}',modified_by='${user}',modified_on=CURRENT_TIMESTAMP,del_status=${
-          deleted ? 1 : 0
+        `update mst_customer set customer_group_id='${customer_group_id}',customer_code='${customer_code}',customer_location='${customer_location}',customer_spoc='${customer_spoc}',customer_email='${customer_email}',modified_by='${user}',modified_on=CURRENT_TIMESTAMP,del_status=${deleted ? 1 : 0
         } where customer_id=${customer_id}`
       );
     if (response.rowsAffected[0] == 1) {

@@ -4,38 +4,12 @@ import poolPromise, { sql } from "../db.js";
 import nodemailer from "nodemailer";
 import { getAuditDateInfo } from "./utils/date.js";
 import generateTemplate from "./mailTemplate/generateTemplate.js";
-
-const TableName = {
-    Trn_sudit_schedule_header: "trn_audit_schedule_header",
-    Trn_audit_schedule_details: "trn_audit_schedule_details",
-    Trn_audit_participants: "trn_audit_participants",
-
-    // 
-    Mst_Audit_Checkpoint: "Mst_Audit_Checkpoint",
-    Mst_Audit_Checksheet: "Mst_Audit_Checksheet",
-
-    mst_department: "mst_department",
-    mst_employees: "mst_employees",
-
-    Mst_Digital_Audit_Type: "Mst_Digital_Audit_Type",
-    mst_plant: "mst_plant"
-}
-
-export const scheduleStatusEnum = {
-    scheduled: "scheduled",
-    cancelled: "cancelled",
-    completed: "completed"
-}
-
-
-export const trnParticipantRoleEnum = {
-    Auditor: "Auditor",
-    Auditee: "Auditee"
-}
+import { scheduleStatusEnum, TableName, trnParticipantRoleEnum } from "./utils/utils.js";
 
 
 let mailconfig = nodemailer.createTransport({
-    host: "3.109.243.162",
+    // host: "3.109.243.162",
+    host: "10.101.0.10",
     port: 25,
     secure: false,
     auth: {
@@ -376,7 +350,7 @@ auditSchedule.post('/details_insert', verifyJWT, async (req, res) => {
         const body = req.body;
         const {
             schedule_id, dept_id, audit_scope, shift, audit_date,
-            auditors, auditees
+            auditors, auditees, plant_id, audit_type_id
         } = body;
 
         const userId = req.user;
@@ -386,10 +360,36 @@ auditSchedule.post('/details_insert', verifyJWT, async (req, res) => {
         if (!auditors || !auditees || auditors.length === 0 || auditees.length === 0) {
             return res.status(400).json({
                 success: false,
-                error: 'Auditors and auditees are required and cannot be empty.'
+                data: 'Auditors and auditees are required and cannot be empty.'
             });
         }
 
+        if (!plant_id || !audit_type_id || !dept_id) {
+            return res.status(400).json({
+                success: false,
+                body: req.body,
+                data: 'Plant Id or Dept Id or Audit Type Id is missing'
+            });
+        }
+
+
+        // If there is no checksheet then don't allow
+        const checkSheetIsExist = await pool.request()
+            .input("Audit_Id", audit_type_id)
+            .input("Plant", plant_id)
+            .input("Department", dept_id)
+            .query(`
+                    select * from Mst_Audit_Checksheet 
+                    WHERE Audit_Id = @Audit_Id AND Plant=@Plant AND Department=@Department AND Active_Status = 1
+                `)
+
+        if (checkSheetIsExist?.recordset?.length === 0) {
+            return res.status(400).json({
+                success: false,
+                body: req.body,
+                data: "No active audit checksheet found for the selected audit type, plant, and department.",
+            });
+        }
 
         const auditorTable = new sql.Table("#auditorTable")
         auditorTable.create = true;
@@ -443,9 +443,9 @@ auditSchedule.put('/details_update', verifyJWT, async (req, res) => {
         const checkResult = await pool.request()
             .input("schedule_detail_id", schedule_detail_id)
             .query(`
-            SELECT status FROM ${TableName.Trn_audit_schedule_details} 
-            WHERE schedule_detail_id = @schedule_detail_id
-            `);
+                    SELECT status FROM ${TableName.Trn_audit_schedule_details} 
+                    WHERE schedule_detail_id = @schedule_detail_id
+                `);
 
         const currentStatus = checkResult?.recordset[0]?.status;
 
@@ -519,9 +519,9 @@ auditSchedule.put('/remarks-update', verifyJWT, async (req, res) => {
         const checkResult = await pool.request()
             .input("schedule_detail_id", schedule_detail_id)
             .query(`
-            SELECT status FROM ${TableName.Trn_audit_schedule_details} 
-            WHERE schedule_detail_id = @schedule_detail_id
-            `);
+                    SELECT status FROM ${TableName.Trn_audit_schedule_details} 
+                    WHERE schedule_detail_id = @schedule_detail_id
+                `);
 
         const currentStatus = checkResult?.recordset[0]?.status;
 
@@ -543,11 +543,11 @@ auditSchedule.put('/remarks-update', verifyJWT, async (req, res) => {
                     UPDATE ${TableName.Trn_audit_schedule_details} 
                     SET 
                     remarks = @remarks,
-            status = @status,
-            modify_by = @modify_by,
-            modify_on = @modify_on
+                    status = @status,
+                    modify_by = @modify_by,
+                    modify_on = @modify_on
                     WHERE schedule_detail_id = @schedule_detail_id
-            `)
+                `)
         return res.status(200).json({ success: true, data: result?.recordset });
     } catch (error) {
         console.error(error);
@@ -583,10 +583,10 @@ auditSchedule.get("/view-checkpoints", verifyJWT, async (req, res) => {
             .input('Department', deptId)
             .query(`
                     SELECT
-            *
-            FROM ${TableName.Mst_Audit_Checksheet} 
+                    *
+                    FROM ${TableName.Mst_Audit_Checksheet} 
                     WHERE Audit_Id = @Audit_Id AND Plant = @Plant AND Department = @Department AND Active_Status = 1
-            `)
+                `)
 
         // console.log(result?.recordset);
 
@@ -601,10 +601,10 @@ auditSchedule.get("/view-checkpoints", verifyJWT, async (req, res) => {
             .input('Audit_Checksheet_Id', checksheet?.Audit_Checksheet_Id)
             .query(`
                     SELECT
-            *
-            FROM ${TableName.Mst_Audit_Checkpoint} 
+                    *
+                    FROM ${TableName.Mst_Audit_Checkpoint} 
                     WHERE Audit_Checksheet_Id = @Audit_Checksheet_Id AND Active_Status = 1
-            `)
+                `)
 
         console.log(checkpointResult?.recordset?.length, "checkpointResult")
 

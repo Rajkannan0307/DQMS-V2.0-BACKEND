@@ -1,35 +1,14 @@
 import { Router } from "express";
 import verifyJWT from "../middleware/auth.js";
 import poolPromise from "../db.js";
-import { scheduleStatusEnum, trnParticipantRoleEnum } from "./auditSchedule.js";
 import generateTemplate from "./mailTemplate/generateTemplate.js";
 import nodemailer from "nodemailer";
+import { scheduleStatusEnum, TableName, trnAuditNcStatus, trnParticipantRoleEnum } from "./utils/utils.js";
 
-// Perform audit section
-
-const TableName = {
-    Trn_sudit_schedule_header: "trn_audit_schedule_header",
-    Trn_audit_schedule_details: "trn_audit_schedule_details",
-    Trn_audit_participants: "trn_audit_participants",
-
-    Mst_Audit_Checkpoint: "Mst_Audit_Checkpoint",
-    Mst_Audit_Checksheet: "Mst_Audit_Checksheet",
-
-    mst_department: "mst_department",
-    mst_employees: "mst_employees",
-
-    Mst_Digital_Audit_Type: "Mst_Digital_Audit_Type",
-
-
-    trn_audit_result: "trn_audit_result",
-
-    trn_auditor_comments: "trn_auditor_comments",
-
-    mst_plant: "mst_plant"
-}
 
 let mailconfig = nodemailer.createTransport({
-    host: "3.109.243.162",
+    // host: "3.109.243.162",
+    host: "10.101.0.10",
     port: 25,
     secure: false,
     auth: {
@@ -117,6 +96,7 @@ auditStatus.get("/get", verifyJWT, async (req, res) => {
                     sh.audit_type_id,
                     sh.audit_name,
                     cmd.comments,
+                    sd.nc_auditee,
 
                     -- Auditors as nested JSON array
                     (
@@ -141,8 +121,8 @@ auditStatus.get("/get", verifyJWT, async (req, res) => {
                     ) AS auditees
 
                     FROM ${TableName.Trn_audit_schedule_details} sd
-                    INNER JOIN ${TableName.mst_department} AS dept ON dept.dept_id = sd.dept_id
-                    INNER JOIN ${TableName.Trn_sudit_schedule_header} AS sh ON sh.schedule_id = sd.schedule_id
+                    LEFT JOIN ${TableName.mst_department} AS dept ON dept.dept_id = sd.dept_id
+                    LEFT JOIN ${TableName.Trn_sudit_schedule_header} AS sh ON sh.schedule_id = sd.schedule_id
                     ---INNER JOIN ${TableName.Mst_Digital_Audit_Type} AS mst_at ON mst_at.Audit_Id = sh.audit_type_id
                     LEFT JOIN ${TableName.trn_auditor_comments} AS cmd ON cmd.schedule_detail_id = sd.schedule_detail_id
                     WHERE sd.schedule_id IN (${scheduleHeaderIds}) AND sd.schedule_detail_id IN (${participantsIds}) AND status=@status
@@ -163,72 +143,73 @@ auditStatus.get("/get", verifyJWT, async (req, res) => {
     }
 })
 
-auditStatus.get("/view-results", verifyJWT, async (req, res) => {
-    try {
-        const pool = await poolPromise;
-        const auditId = req.query?.auditId;
-        const plantId = req.query?.plantId;
-        const deptId = req.query?.deptId;
-        const schedule_details_id = req.query?.scheduleDetailsId;
+//NOT USING
+// auditStatus.get("/view-results", verifyJWT, async (req, res) => {
+//     try {
+//         const pool = await poolPromise;
+//         const auditId = req.query?.auditId;
+//         const plantId = req.query?.plantId;
+//         const deptId = req.query?.deptId;
+//         const schedule_details_id = req.query?.scheduleDetailsId;
 
-        const missingFields = [];
-        if (!auditId) missingFields.push("auditId");
-        if (!plantId) missingFields.push("plantId");
-        if (!deptId) missingFields.push("deptId");
+//         const missingFields = [];
+//         if (!auditId) missingFields.push("auditId");
+//         if (!plantId) missingFields.push("plantId");
+//         if (!deptId) missingFields.push("deptId");
 
-        if (missingFields.length > 0) {
-            return res.status(500).json({
-                success: false,
-                message: `Missing required field(s): ${missingFields.join(", ")}`,
-            });
-        }
-
-
-        const result = await pool
-            .request()
-            .input('Audit_Id', auditId)
-            .input('Plant', plantId)
-            .input('Department', deptId)
-            .query(`
-                        SELECT 
-                        *
-                        FROM ${TableName.Mst_Audit_Checksheet} 
-                        WHERE Audit_Id=@Audit_Id AND Plant=@Plant AND Department=@Department AND Active_Status=1
-                    `)
+//         if (missingFields.length > 0) {
+//             return res.status(500).json({
+//                 success: false,
+//                 message: `Missing required field(s): ${missingFields.join(", ")}`,
+//             });
+//         }
 
 
-        console.log(result?.recordset);
+//         const result = await pool
+//             .request()
+//             .input('Audit_Id', auditId)
+//             .input('Plant', plantId)
+//             .input('Department', deptId)
+//             .query(`
+//                         SELECT 
+//                         *
+//                         FROM ${TableName.Mst_Audit_Checksheet} 
+//                         WHERE Audit_Id=@Audit_Id AND Plant=@Plant AND Department=@Department AND Active_Status=1
+//                     `)
 
-        if (result?.recordset?.length <= 0) {
-            return res.status(200).json({ success: true, data: [], message: "Checksheet is empty for this Audit_Id, Plant, Department" });
-        }
 
-        const checksheet = result?.recordset[0];
+//         console.log(result?.recordset);
 
-        const checkpointResult = await pool
-            .request()
-            .input('Audit_Checksheet_Id', checksheet?.Audit_Checksheet_Id)
-            .input('schedule_details_id', schedule_details_id)
-            .query(`
-                        SELECT 
-                        *
-                        FROM ${TableName.Mst_Audit_Checkpoint} AS mac
-                        LEFT JOIN ${TableName.trn_audit_result} AS tar 
-                            ON tar.checkpoint_id = mac.Audit_Checkpoint_Id
-                            AND tar.schedule_details_id = @schedule_details_id
-                        WHERE Audit_Checksheet_Id=@Audit_Checksheet_Id 
-                            AND Active_Status=1
-                    `)
+//         if (result?.recordset?.length <= 0) {
+//             return res.status(200).json({ success: true, data: [], message: "Checksheet is empty for this Audit_Id, Plant, Department" });
+//         }
 
-        console.log(checkpointResult?.recordset, "checkpointResult")
-        console.log(checkpointResult?.recordset?.length, "checkpointResult")
+//         const checksheet = result?.recordset[0];
 
-        return res.status(200).json({ success: true, data: checkpointResult?.recordset, checksheetData: checksheet });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ success: false, data: 'Internal server error' });
-    }
-})
+//         const checkpointResult = await pool
+//             .request()
+//             .input('Audit_Checksheet_Id', checksheet?.Audit_Checksheet_Id)
+//             .input('schedule_details_id', schedule_details_id)
+//             .query(`
+//                         SELECT 
+//                         *
+//                         FROM ${TableName.Mst_Audit_Checkpoint} AS mac
+//                         LEFT JOIN ${TableName.trn_audit_result} AS tar 
+//                             ON tar.checkpoint_id = mac.Audit_Checkpoint_Id
+//                             AND tar.schedule_details_id = @schedule_details_id
+//                         WHERE Audit_Checksheet_Id=@Audit_Checksheet_Id 
+//                             AND Active_Status=1
+//                     `)
+
+//         // console.log(checkpointResult?.recordset, "checkpointResult")
+//         console.log(checkpointResult?.recordset?.length, "checkpointResult")
+
+//         return res.status(200).json({ success: true, data: checkpointResult?.recordset, checksheetData: checksheet });
+//     } catch (error) {
+//         console.error(error);
+//         return res.status(500).json({ success: false, data: 'Internal server error' });
+//     }
+// })
 
 auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
     try {
@@ -249,6 +230,7 @@ auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
         const auditees = body?.auditees;
         const auditors = body?.auditors;
 
+        const nc_auditee = body?.nc_auditee;
         const comments = body?.comments;
 
         const pool = await poolPromise;
@@ -303,16 +285,32 @@ auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
                 .input('audited_by', userId)
                 .input('modify_by', userId)
                 .execute('trn_audit_result_UPSERT')
+
+            await pool.request()
+                .input('audit_type_id', audit_type_id)
+                .input('plant_id', plant_id)
+                .input('dept_id', dept_id)
+                .input('schedule_detail_id', schedule_detail_id)
+                .input('audit_checksheet_id', data?.Audit_Checksheet_Id)
+                .input('audit_checkpoint_id', data?.Audit_Checkpoint_Id)
+                .input('nc_ratings', data?.ratings)
+                .input('nc_observation', data?.observation_remarks)
+                .input('nc_auditee', nc_auditee)
+                .input('nc_auditor', userId)
+                .input('nc_status', trnAuditNcStatus.OPEN)
+                .execute('trn_audit_nc_INSERT')
         }
 
         // Updating the complete status
         await pool.request()
             .input('status', scheduleStatusEnum.completed)
             .input('schedule_details_id', schedule_detail_id)
+            .input('nc_auditee', nc_auditee)
             .query(`
                     UPDATE ${TableName.Trn_audit_schedule_details}
                     SET
-                    status = @status
+                    status = @status,
+                    nc_auditee = @nc_auditee
                     WHERE schedule_detail_id = @schedule_details_id
                 `)
 
@@ -432,6 +430,183 @@ auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
         return res.status(500).json({ success: false, data: 'Internal server error' });
     }
 })
+
+
+// Audit Result page section - trn_audit_result - Audit Result Page  
+auditStatus.get("/result", verifyJWT, async (req, res) => {
+    try {
+        const userId = req.user;
+        const reqQuery = req.query;
+        const auditTypeId = reqQuery?.auditTypeId
+        const status = reqQuery?.status
+
+        const pool = await poolPromise;
+        // Get the schedule header data
+        const result1 = await pool.request()
+            .input('audit_type_id', auditTypeId)
+            .query(`
+                    SELECT 
+                    * 
+                    FROM ${TableName.Trn_sudit_schedule_header}
+                    WHERE audit_type_id = @audit_type_id
+                `)
+        const scheduleHeader = result1?.recordset || [];
+        const scheduleHeaderIds = scheduleHeader?.map((e) => `'${e?.schedule_id}'`).join(", ");
+        console.log(scheduleHeaderIds, "scheduleHeaderIds")
+
+        if (scheduleHeaderIds?.length <= 0) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+        // TODO:
+        // const roleAudit = isAuditeeView === 'true' ? trnParticipantRoleEnum.Auditee : trnParticipantRoleEnum.Auditor
+        const participantResult = await pool.request()
+            .input("gen_id", userId)
+            .input("role", trnParticipantRoleEnum.Auditee)
+            // .input("role", trnParticipantRoleEnum.Auditor)
+            .query(`
+                    SELECT 
+                    *
+                    FROM ${TableName.Trn_audit_participants} 
+                    WHERE gen_id = @gen_id AND role = @role
+                `)
+
+        const participants = participantResult?.recordset;
+
+        console.log(participants.length, "participants")
+        if (participants?.length <= 0) {
+            console.log('No audit schedule found for this auditor')
+            return res.status(200).json({ success: true, data: [] });
+        }
+
+        const participantsIds = participants?.map((e) => `'${e?.schedule_detail_id}'`).join(", ")
+        // console.log(participantsIds)
+        const result = await pool.request()
+            .input("auditTypeId", auditTypeId)
+            .query(`
+                    WITH RankedTAR AS (
+                        SELECT
+                        tar.*,
+                        dept.dept_name,
+                        sh.audit_name,
+                        sd.status,
+                        sd.nc_auditee,
+                        cmd.comments,
+                        mac.Rev_No,
+
+                         -- Auditors as nested JSON array
+                        (
+                            SELECT
+                                p.gen_id,
+                                e.emp_name
+                            FROM trn_audit_participants p
+                            INNER JOIN mst_employees e ON e.gen_id = p.gen_id
+                            WHERE p.schedule_detail_id = tar.schedule_details_id AND p.role = '${trnParticipantRoleEnum.Auditor}'
+                            FOR JSON PATH
+                        ) AS auditors,
+
+                        -- Auditees as nested JSON array
+                        (
+                            SELECT 
+                                p.gen_id,
+                                e.emp_name
+                            FROM trn_audit_participants p
+                            INNER JOIN mst_employees e ON e.gen_id = p.gen_id
+                            WHERE p.schedule_detail_id = tar.schedule_details_id AND p.role = '${trnParticipantRoleEnum.Auditee}'
+                            FOR JSON PATH
+                        ) AS auditees,
+
+                        ROW_NUMBER() OVER (PARTITION BY tar.schedule_details_id ORDER BY tar.trn_audit_results_id DESC) AS rn
+                        FROM ${TableName.trn_audit_result} as tar
+                        LEFT JOIN ${TableName.mst_department} AS dept ON dept.dept_id = tar.dept_id
+                        LEFT JOIN ${TableName.Trn_sudit_schedule_header} AS sh ON sh.schedule_id = tar.schedule_id
+                        LEFT JOIN ${TableName.Trn_audit_schedule_details} AS sd ON sd.schedule_detail_id = tar.schedule_details_id
+                        LEFT JOIN ${TableName.trn_auditor_comments} AS cmd ON cmd.schedule_detail_id = tar.schedule_details_id
+                        LEFT JOIN ${TableName.Mst_Audit_Checkpoint} AS mac ON mac.Audit_Checkpoint_Id = tar.checkpoint_id
+                        WHERE tar.schedule_id IN (${scheduleHeaderIds}) AND tar.schedule_details_id IN (${participantsIds}) 
+                    ) 
+            
+                    -- Selects only the latest (most recent) record for each schedule_detail_id group
+                    SELECT * FROM RankedTAR WHERE rn = 1
+                `)
+
+        const scheduleDeatils = result?.recordset || [];
+
+        const finalResult = scheduleDeatils?.map(row => ({
+            ...row,
+            auditors: JSON.parse(row.auditors || '[]'),
+            auditees: JSON.parse(row.auditees || '[]')
+        }));
+
+        return res.status(200).json({ success: true, data: finalResult });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, data: 'Internal server error' });
+    }
+})
+
+//trn_audit_result checkpoints
+auditStatus.get("/result-checkpoints", verifyJWT, async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const auditId = req.query?.auditId;
+        const plantId = req.query?.plantId;
+        const deptId = req.query?.deptId;
+        const schedule_details_id = req.query?.scheduleDetailsId;
+
+        const missingFields = [];
+        if (!auditId) missingFields.push("auditId");
+        if (!plantId) missingFields.push("plantId");
+        if (!deptId) missingFields.push("deptId");
+
+        if (missingFields.length > 0) {
+            return res.status(500).json({
+                success: false,
+                message: `Missing required field(s): ${missingFields.join(", ")}`,
+            });
+        }
+
+        const checkSheetDataResult = await pool
+            .request()
+            .input('Audit_Id', auditId)
+            .input('Plant', plantId)
+            .input('Department', deptId)
+            .query(`
+                    SELECT 
+                    *
+                    FROM ${TableName.Mst_Audit_Checksheet} 
+                    WHERE Audit_Id=@Audit_Id AND Plant=@Plant AND Department=@Department AND Active_Status=1
+                `)
+
+        const checksheet = checkSheetDataResult.recordset[0]
+
+        const result = await pool.request()
+            .input("audit_type_id", auditId)
+            .input("plant_id", plantId)
+            .input("dept_id", deptId)
+            .input("schedule_details_id", schedule_details_id)
+            .query(`
+                    SELECT
+                    tar.*,
+                    dept.dept_name,
+                    sh.audit_name,
+                    sd.status,
+                    mac.Major_Clause,
+                    mac.Sub_Clause,
+                    mac.Check_Point
+                    FROM ${TableName.trn_audit_result} as tar
+                    LEFT JOIN ${TableName.mst_department} AS dept ON dept.dept_id = tar.dept_id
+                    LEFT JOIN ${TableName.Trn_sudit_schedule_header} AS sh ON sh.schedule_id = tar.schedule_id
+                    LEFT JOIN ${TableName.Trn_audit_schedule_details} AS sd ON sd.schedule_detail_id = tar.schedule_details_id
+                    INNER JOIN ${TableName.Mst_Audit_Checkpoint} AS mac ON mac.Audit_Checkpoint_Id = tar.checkpoint_id
+                    WHERE tar.audit_type_id=@audit_type_id AND tar.plant_id=@plant_id AND tar.dept_id=@dept_id AND tar.schedule_details_id=@schedule_details_id
+                `)
+        return res.status(200).json({ success: true, data: result?.recordset, checksheetData: checksheet });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, data: 'Internal server error' });
+    }
+})
+
 
 
 export default auditStatus;

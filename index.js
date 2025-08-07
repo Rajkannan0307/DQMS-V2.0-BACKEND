@@ -18,6 +18,7 @@ import report from "./routes/report.router.js"
 import audit from "./auditManagement/audit.js";
 import auditSchedule from "./auditManagement/auditSchedule.js";
 import auditStatus from "./auditManagement/auditStatus.js";
+import auditNc from "./auditManagement/auditNC.js";
 
 dotenv.config();
 const app = express();
@@ -55,6 +56,7 @@ app.use("/report", report);
 app.use("/audit", audit);
 app.use("/auditSchedule", auditSchedule)
 app.use("/auditStatus", auditStatus)
+app.use("/auditNc", auditNc)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
