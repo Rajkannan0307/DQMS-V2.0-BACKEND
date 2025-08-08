@@ -139,7 +139,7 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
             })
 
             if (validate1.length > 0) {
-                return res.status(400).json({ success: false, data: 'One or more required fields are missing or empty. Please fill in all necessary details' });
+                return res.status(400).json({ success: false, data: 'Root cause, corrective action, and target date are mandatory in all NC points.' });
             }
         }
 
@@ -161,7 +161,7 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
             })
 
             if (validate2.length > 0) {
-                return res.status(400).json({ success: false, data: 'One or more required fields are missing or empty. Please fill in all necessary details' });
+                return res.status(400).json({ success: false, data: 'Auditor comments are mandatory in all NC points.' });
             }
         }
 

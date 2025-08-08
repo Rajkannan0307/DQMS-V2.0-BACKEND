@@ -570,7 +570,7 @@ audit.get('/employee', verifyJWT, async (req, res) => {
         const result = await pool.request()
             .input('plant_id', plantId)
             .input('dept_id', deptId)
-            .query('select * from mst_employees where plant_id = @plant_id AND dept_id = @dept_id AND del_status = 0');
+            .query('select * from mst_employees where plant_id = @plant_id AND dept_id = @dept_id AND del_status = 0 AND is_auditor=0');
         return res.status(200).json({ success: true, data: result.recordset });
     } catch (error) {
         console.error(error);
@@ -581,13 +581,16 @@ audit.get('/employee', verifyJWT, async (req, res) => {
 
 audit.get('/emp_auditor', verifyJWT, async (req, res) => {
     try {
+        const plant_id = req.query.plant_id;
+        console.log(plant_id)
         const pool = await poolPromise;
         const result = await pool.request()
+            .input("plant_id", plant_id)
             .query(`
                     SELECT
                     * 
                     FROM ${TableName.mst_employees} 
-                    WHERE is_auditor=1 AND del_status=0
+                    WHERE is_auditor=1 AND del_status=0 AND plant_id=@plant_id
                 `);
         return res.status(200).json({ success: true, data: result.recordset });
     } catch (error) {

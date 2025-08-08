@@ -143,73 +143,73 @@ auditStatus.get("/get", verifyJWT, async (req, res) => {
     }
 })
 
-//NOT USING
-// auditStatus.get("/view-results", verifyJWT, async (req, res) => {
-//     try {
-//         const pool = await poolPromise;
-//         const auditId = req.query?.auditId;
-//         const plantId = req.query?.plantId;
-//         const deptId = req.query?.deptId;
-//         const schedule_details_id = req.query?.scheduleDetailsId;
+//Only using for perform audit edit or add section
+auditStatus.get("/view-results", verifyJWT, async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const auditId = req.query?.auditId;
+        const plantId = req.query?.plantId;
+        const deptId = req.query?.deptId;
+        const schedule_details_id = req.query?.scheduleDetailsId;
 
-//         const missingFields = [];
-//         if (!auditId) missingFields.push("auditId");
-//         if (!plantId) missingFields.push("plantId");
-//         if (!deptId) missingFields.push("deptId");
+        const missingFields = [];
+        if (!auditId) missingFields.push("auditId");
+        if (!plantId) missingFields.push("plantId");
+        if (!deptId) missingFields.push("deptId");
 
-//         if (missingFields.length > 0) {
-//             return res.status(500).json({
-//                 success: false,
-//                 message: `Missing required field(s): ${missingFields.join(", ")}`,
-//             });
-//         }
-
-
-//         const result = await pool
-//             .request()
-//             .input('Audit_Id', auditId)
-//             .input('Plant', plantId)
-//             .input('Department', deptId)
-//             .query(`
-//                         SELECT 
-//                         *
-//                         FROM ${TableName.Mst_Audit_Checksheet} 
-//                         WHERE Audit_Id=@Audit_Id AND Plant=@Plant AND Department=@Department AND Active_Status=1
-//                     `)
+        if (missingFields.length > 0) {
+            return res.status(500).json({
+                success: false,
+                message: `Missing required field(s): ${missingFields.join(", ")}`,
+            });
+        }
 
 
-//         console.log(result?.recordset);
+        const result = await pool
+            .request()
+            .input('Audit_Id', auditId)
+            .input('Plant', plantId)
+            .input('Department', deptId)
+            .query(`
+                        SELECT 
+                        *
+                        FROM ${TableName.Mst_Audit_Checksheet} 
+                        WHERE Audit_Id=@Audit_Id AND Plant=@Plant AND Department=@Department AND Active_Status=1
+                    `)
 
-//         if (result?.recordset?.length <= 0) {
-//             return res.status(200).json({ success: true, data: [], message: "Checksheet is empty for this Audit_Id, Plant, Department" });
-//         }
 
-//         const checksheet = result?.recordset[0];
+        console.log(result?.recordset);
 
-//         const checkpointResult = await pool
-//             .request()
-//             .input('Audit_Checksheet_Id', checksheet?.Audit_Checksheet_Id)
-//             .input('schedule_details_id', schedule_details_id)
-//             .query(`
-//                         SELECT 
-//                         *
-//                         FROM ${TableName.Mst_Audit_Checkpoint} AS mac
-//                         LEFT JOIN ${TableName.trn_audit_result} AS tar 
-//                             ON tar.checkpoint_id = mac.Audit_Checkpoint_Id
-//                             AND tar.schedule_details_id = @schedule_details_id
-//                         WHERE Audit_Checksheet_Id=@Audit_Checksheet_Id 
-//                             AND Active_Status=1
-//                     `)
+        if (result?.recordset?.length <= 0) {
+            return res.status(200).json({ success: true, data: [], message: "Checksheet is empty for this Audit_Id, Plant, Department" });
+        }
 
-//         // console.log(checkpointResult?.recordset, "checkpointResult")
-//         console.log(checkpointResult?.recordset?.length, "checkpointResult")
+        const checksheet = result?.recordset[0];
 
-//         return res.status(200).json({ success: true, data: checkpointResult?.recordset, checksheetData: checksheet });
-//     } catch (error) {
-//         console.error(error);
-//         return res.status(500).json({ success: false, data: 'Internal server error' });
-//     }
-// })
+        const checkpointResult = await pool
+            .request()
+            .input('Audit_Checksheet_Id', checksheet?.Audit_Checksheet_Id)
+            .input('schedule_details_id', schedule_details_id)
+            .query(`
+                        SELECT 
+                        *
+                        FROM ${TableName.Mst_Audit_Checkpoint} AS mac
+                        LEFT JOIN ${TableName.trn_audit_result} AS tar 
+                            ON tar.checkpoint_id = mac.Audit_Checkpoint_Id
+                            AND tar.schedule_details_id = @schedule_details_id
+                        WHERE Audit_Checksheet_Id=@Audit_Checksheet_Id 
+                            AND Active_Status=1
+                    `)
+
+        // console.log(checkpointResult?.recordset, "checkpointResult")
+        console.log(checkpointResult?.recordset?.length, "checkpointResult")
+
+        return res.status(200).json({ success: true, data: checkpointResult?.recordset, checksheetData: checksheet });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, data: 'Internal server error' });
+    }
+})
 
 auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
     try {
@@ -284,6 +284,7 @@ auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
                 .input('observation_remarks', data?.observation_remarks)
                 .input('audited_by', userId)
                 .input('modify_by', userId)
+                .input('nc_assigned_to', nc_auditee)
                 .execute('trn_audit_result_UPSERT')
 
             await pool.request()
@@ -491,7 +492,7 @@ auditStatus.get("/result", verifyJWT, async (req, res) => {
                         sd.status,
                         sd.nc_auditee,
                         cmd.comments,
-                        mac.Rev_No,
+                        mac.Rev_No AS Current_Rev_No,
 
                          -- Auditors as nested JSON array
                         (
@@ -584,22 +585,46 @@ auditStatus.get("/result-checkpoints", verifyJWT, async (req, res) => {
             .input("plant_id", plantId)
             .input("dept_id", deptId)
             .input("schedule_details_id", schedule_details_id)
-            .query(`
-                    SELECT
-                    tar.*,
-                    dept.dept_name,
-                    sh.audit_name,
-                    sd.status,
-                    mac.Major_Clause,
-                    mac.Sub_Clause,
-                    mac.Check_Point
-                    FROM ${TableName.trn_audit_result} as tar
-                    LEFT JOIN ${TableName.mst_department} AS dept ON dept.dept_id = tar.dept_id
-                    LEFT JOIN ${TableName.Trn_sudit_schedule_header} AS sh ON sh.schedule_id = tar.schedule_id
-                    LEFT JOIN ${TableName.Trn_audit_schedule_details} AS sd ON sd.schedule_detail_id = tar.schedule_details_id
-                    INNER JOIN ${TableName.Mst_Audit_Checkpoint} AS mac ON mac.Audit_Checkpoint_Id = tar.checkpoint_id
-                    WHERE tar.audit_type_id=@audit_type_id AND tar.plant_id=@plant_id AND tar.dept_id=@dept_id AND tar.schedule_details_id=@schedule_details_id
-                `)
+            .execute('GetTrnAuditResult')
+
+
+        // .query(`
+        //         SELECT
+        //         tar.*,
+        //         dept.dept_name,
+        //         sh.audit_name,
+        //         sd.status,
+        //         macr.Major_Clause,
+        //         macr.Sub_Clause,
+        //         macr.Check_Point,
+        //         nc.nc_root_cause,
+        //         nc.nc_action, -- corrective action
+        //         nc.target_date,
+        //         nc.nc_auditee,
+        //         nc.nc_action_submitted_on,
+        //         nc.nc_auditor,
+        //         nc.nc_auditor_comment,
+        //         nc.nc_status,
+        //         nc.nc_closed_on,
+        //         auditor.emp_name AS nc_auditor_name,
+        //         auditee.emp_name AS nc_auditee_name
+
+        //         FROM ${TableName.trn_audit_result} as tar
+        //         LEFT JOIN ${TableName.mst_department} AS dept ON dept.dept_id = tar.dept_id
+        //         LEFT JOIN ${TableName.Trn_sudit_schedule_header} AS sh ON sh.schedule_id = tar.schedule_id
+        //         LEFT JOIN ${TableName.Trn_audit_schedule_details} AS sd ON sd.schedule_detail_id = tar.schedule_details_id
+
+        //         --- from revision history get the checksheet data for checkpoints
+        //         LEFT JOIN ${TableName.Mst_Audit_Checkpoint_Revision} AS macr ON macr.Audit_Checksheet_Id = tar.checksheet_id AND macr.Rev_No = tar.Rev_No
+
+        //         --getting the nc data based on scheduler deatil id and checkpoint id
+        //         LEFT JOIN ${TableName.trn_audit_nc} As nc ON nc.schedule_detail_id = tar.schedule_details_id AND nc.audit_checkpoint_id = tar.checkpoint_id
+
+        //         --getting auditor name 
+        //         LEFT JOIN ${TableName.mst_employees} AS auditor ON auditor.gen_id = tar.audited_by
+        //         LEFT JOIN ${TableName.mst_employees} AS auditee ON auditee.gen_id = tar.nc_assigned_to
+        //         WHERE tar.audit_type_id=@audit_type_id AND tar.plant_id=@plant_id AND tar.dept_id=@dept_id AND tar.schedule_details_id=@schedule_details_id
+        //     `)
         return res.status(200).json({ success: true, data: result?.recordset, checksheetData: checksheet });
     } catch (error) {
         console.error(error);

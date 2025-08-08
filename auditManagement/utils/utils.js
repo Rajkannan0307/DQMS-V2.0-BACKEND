@@ -1,6 +1,7 @@
 export const TableName = {
     // 
     Mst_Audit_Checkpoint: "Mst_Audit_Checkpoint",
+    Mst_Audit_Checkpoint_Revision: "Mst_Audit_Checkpoint_Revision",
     Mst_Audit_Checksheet: "Mst_Audit_Checksheet",
 
     mst_department: "mst_department",
