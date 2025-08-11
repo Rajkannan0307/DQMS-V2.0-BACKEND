@@ -41,7 +41,7 @@ auditStatus.get("/get", verifyJWT, async (req, res) => {
             .query(`
                     SELECT 
                     * 
-                    FROM ${TableName.Trn_sudit_schedule_header}
+                    FROM ${TableName.Trn_audit_schedule_header}
                     WHERE audit_type_id = @audit_type_id
                 `)
         const scheduleHeader = result1?.recordset || [];
@@ -122,7 +122,7 @@ auditStatus.get("/get", verifyJWT, async (req, res) => {
 
                     FROM ${TableName.Trn_audit_schedule_details} sd
                     LEFT JOIN ${TableName.mst_department} AS dept ON dept.dept_id = sd.dept_id
-                    LEFT JOIN ${TableName.Trn_sudit_schedule_header} AS sh ON sh.schedule_id = sd.schedule_id
+                    LEFT JOIN ${TableName.Trn_audit_schedule_header} AS sh ON sh.schedule_id = sd.schedule_id
                     ---INNER JOIN ${TableName.Mst_Digital_Audit_Type} AS mst_at ON mst_at.Audit_Id = sh.audit_type_id
                     LEFT JOIN ${TableName.trn_auditor_comments} AS cmd ON cmd.schedule_detail_id = sd.schedule_detail_id
                     WHERE sd.schedule_id IN (${scheduleHeaderIds}) AND sd.schedule_detail_id IN (${participantsIds}) AND status=@status
@@ -334,7 +334,7 @@ auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
                     sh.audit_name AS schedularName,
                     auditType.Audit_Name,
                     mp.plant_name
-                    FROM ${TableName.Trn_sudit_schedule_header} AS sh
+                    FROM ${TableName.Trn_audit_schedule_header} AS sh
                     JOIN ${TableName.Mst_Digital_Audit_Type} AS auditType ON auditType.Audit_Id=sh.audit_type_id
                     JOIN ${TableName.mst_plant} AS mp ON mp.plant_id=sh.plant_id
                     WHERE schedule_id = @schedule_id
@@ -448,7 +448,7 @@ auditStatus.get("/result", verifyJWT, async (req, res) => {
             .query(`
                     SELECT 
                     * 
-                    FROM ${TableName.Trn_sudit_schedule_header}
+                    FROM ${TableName.Trn_audit_schedule_header}
                     WHERE audit_type_id = @audit_type_id
                 `)
         const scheduleHeader = result1?.recordset || [];
@@ -519,7 +519,7 @@ auditStatus.get("/result", verifyJWT, async (req, res) => {
                         ROW_NUMBER() OVER (PARTITION BY tar.schedule_details_id ORDER BY tar.trn_audit_results_id DESC) AS rn
                         FROM ${TableName.trn_audit_result} as tar
                         LEFT JOIN ${TableName.mst_department} AS dept ON dept.dept_id = tar.dept_id
-                        LEFT JOIN ${TableName.Trn_sudit_schedule_header} AS sh ON sh.schedule_id = tar.schedule_id
+                        LEFT JOIN ${TableName.Trn_audit_schedule_header} AS sh ON sh.schedule_id = tar.schedule_id
                         LEFT JOIN ${TableName.Trn_audit_schedule_details} AS sd ON sd.schedule_detail_id = tar.schedule_details_id
                         LEFT JOIN ${TableName.trn_auditor_comments} AS cmd ON cmd.schedule_detail_id = tar.schedule_details_id
                         LEFT JOIN ${TableName.Mst_Audit_Checkpoint} AS mac ON mac.Audit_Checkpoint_Id = tar.checkpoint_id

@@ -11,7 +11,7 @@ export const TableName = {
     mst_plant: "mst_plant",
 
     //Audit schedule
-    Trn_sudit_schedule_header: "trn_audit_schedule_header",
+    Trn_audit_schedule_header: "trn_audit_schedule_header",
     Trn_audit_schedule_details: "trn_audit_schedule_details",
     Trn_audit_participants: "trn_audit_participants",
 
@@ -49,7 +49,7 @@ export const NcActionType = {
     auditee_save: "auditee_save",
     auditee_submit: "auditee_submit",
     auditor_approve: "auditor_approve",
-    auditor_query: "auditor_query",
+    auditor_query: "auditor_query", //changed to reject
     auditor_save: "auditor_save",
 };
 

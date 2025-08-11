@@ -31,7 +31,7 @@ auditSchedule.get('/getHeader', verifyJWT, async (req, res) => {
         const pool = await poolPromise;
         const result = await pool.request()
             .input("audit_type_id", audit_id)
-            .query(`select * from ${TableName.Trn_sudit_schedule_header} where audit_type_id=@audit_type_id`)
+            .query(`select * from ${TableName.Trn_audit_schedule_header} where audit_type_id=@audit_type_id`)
         return res.status(200).json({ success: true, data: result.recordset });
     } catch (error) {
         console.error(error);
@@ -240,7 +240,7 @@ auditSchedule.post('/send-mail', verifyJWT, async (req, res) => {
                     sh.audit_name AS schedularName,
                     auditType.Audit_Name,
                     mp.plant_name
-                    FROM ${TableName.Trn_sudit_schedule_header} AS sh
+                    FROM ${TableName.Trn_audit_schedule_header} AS sh
                     JOIN ${TableName.Mst_Digital_Audit_Type} AS auditType ON auditType.Audit_Id=sh.audit_type_id
                     JOIN ${TableName.mst_plant} AS mp ON mp.plant_id=sh.plant_id
                     WHERE schedule_id = @schedule_id
@@ -258,7 +258,7 @@ auditSchedule.post('/send-mail', verifyJWT, async (req, res) => {
                 `)
 
         const plantHeadResult = await pool.request()
-            .input('role_id', '5')
+            .input('role_id', '6')
             .input('plant_id', scheduleHeader?.plant_id)
             .query(`
                     SELECT 

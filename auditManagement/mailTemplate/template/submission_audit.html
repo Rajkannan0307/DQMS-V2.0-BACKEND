@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title></title>
+  </head>
+  <body style="font-size: small">
+    <h4 style="font-size: medium">Dear Team,</h4>
+    <p>
+      The corrective actions related to the
+      <span style="font-weight: bold">{{ audit_type_name }}</span> observations,
+      and the required details have been updated in the DQMS portal.
+    </p>
+
+    <p style="font-weight: bold">DQMS → Audit Management → Audit NC_CAR</p>
+    <p>
+      Request you to kindly review the submitted actions and proceed with the
+      review at your earliest convenience.
+    </p>
+    <p>
+      For any clarifications or additional inputs required, feel free to reach
+      out.
+    </p>
+    <p>Thank you for your support and timely review.</p>
+    <a href="{{ applicationLink }}" style="font-weight: bold"
+      >DQMS APPLICATION LINK</a
+    >
+    <p>Best Regards,</p>
+    <p style="font-weight: bold">{{ regardsBy }}</p>
+
+    <div
+      style="width: 100%; height: 1px; background: #b6b6b6; margin: 16px 0"
+    ></div>
+
+    <div style="color: #db7272; font-size: 14px; margin: 0">
+      <p>
+        This is an automated notification from the DQMS. Don't reply to this
+        sender mail id.
+      </p>
+    </div>
+  </body>
+</html>
