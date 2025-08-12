@@ -53,3 +53,9 @@ export const NcActionType = {
     auditor_save: "auditor_save",
 };
 
+
+
+export const AduitConstant = {
+    // applicationLink: "http://10.51.10.225:5173/" 
+    applicationLink: "http://rmlvlcytesting:5173/"
+}

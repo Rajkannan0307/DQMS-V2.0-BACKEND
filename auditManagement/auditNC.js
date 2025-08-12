@@ -1,7 +1,7 @@
 import { Router } from "express";
 import verifyJWT from "../middleware/auth.js";
 import poolPromise from "../db.js";
-import { NcActionType, TableName, trnAuditNcStatus, trnParticipantRoleEnum } from "./utils/utils.js";
+import { AduitConstant, NcActionType, TableName, trnAuditNcStatus, trnParticipantRoleEnum } from "./utils/utils.js";
 import generateTemplate from "./mailTemplate/generateTemplate.js";
 import nodemailer from "nodemailer";
 
@@ -198,16 +198,16 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
         const pool = await poolPromise;
 
         // TODO: pending 
-        // await Promise.all(ncdataList?.map(async (e) => {
-        //     await pool.request()
-        //         .input("actionType", actionType)
-        //         .input("audit_nc_id", e?.audit_nc_id)
-        //         .input("nc_root_cause", e?.nc_root_cause)
-        //         .input("nc_action", e?.nc_action)
-        //         .input("target_date", e?.target_date)
-        //         .input("nc_auditor_comment", e?.nc_auditor_comment)
-        //         .execute('trn_audit_nc_UPDATE')
-        // }))
+        await Promise.all(ncdataList?.map(async (e) => {
+            await pool.request()
+                .input("actionType", actionType)
+                .input("audit_nc_id", e?.audit_nc_id)
+                .input("nc_root_cause", e?.nc_root_cause)
+                .input("nc_action", e?.nc_action)
+                .input("target_date", e?.target_date)
+                .input("nc_auditor_comment", e?.nc_auditor_comment)
+                .execute('trn_audit_nc_UPDATE')
+        }))
 
         // Mail action
         // console.log(ncdataList)
@@ -342,7 +342,7 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
                     audit_type_name: auditMailInfo?.Audit_Name || "",
                     dept_name: auditMailInfo?.dept_name?.trim() || "",
                     audit_name: auditMailInfo?.schedulerName || "",
-                    applicationLink: "http://10.51.10.225:5173/", //,
+                    applicationLink: AduitConstant.applicationLink, //,
                     regardsBy: auditMailInfo?.emp_name || "Rane"
                 },
                 fileName: 'submission_audit.html'
@@ -356,7 +356,7 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
                     audit_type_name: auditMailInfo?.Audit_Name || "",
                     dept_name: auditMailInfo?.dept_name?.trim() || "",
                     audit_name: auditMailInfo?.schedulerName || "",
-                    applicationLink: "http://10.51.10.225:5173/", //
+                    applicationLink: AduitConstant.applicationLink, //
                     regardsBy: auditMailInfo?.emp_name || "Rane"
                 },
                 fileName: 'agree_audit.html'
@@ -369,7 +369,7 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
                     audit_type_name: auditMailInfo?.Audit_Name || "",
                     dept_name: auditMailInfo?.dept_name?.trim() || "",
                     audit_name: auditMailInfo?.schedulerName || "",
-                    applicationLink: "http://10.51.10.225:5173/", //
+                    applicationLink: AduitConstant.applicationLink, //
                     regardsBy: auditMailInfo?.emp_name || "Rane"
                 },
                 fileName: 'reject_audit.html'

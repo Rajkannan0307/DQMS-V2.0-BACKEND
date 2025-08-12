@@ -3,7 +3,7 @@ import verifyJWT from "../middleware/auth.js";
 import poolPromise from "../db.js";
 import generateTemplate from "./mailTemplate/generateTemplate.js";
 import nodemailer from "nodemailer";
-import { scheduleStatusEnum, TableName, trnAuditNcStatus, trnParticipantRoleEnum } from "./utils/utils.js";
+import { AduitConstant, scheduleStatusEnum, TableName, trnAuditNcStatus, trnParticipantRoleEnum } from "./utils/utils.js";
 
 
 let mailconfig = nodemailer.createTransport({
@@ -400,8 +400,7 @@ auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
                 dept_name: dept_name,
                 audit_name: audit_name,
                 regardsBy: currentUser?.emp_name,
-                // applicationLink: "https://www.google.com"
-                applicationLink: "http://10.51.10.225/5173" //TODO: need to update
+                applicationLink: AduitConstant.applicationLink //TODO: need to update
             },
             fileName: "after_audit.html"
         })

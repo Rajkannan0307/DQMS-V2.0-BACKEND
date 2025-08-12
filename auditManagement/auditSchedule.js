@@ -4,7 +4,7 @@ import poolPromise, { sql } from "../db.js";
 import nodemailer from "nodemailer";
 import { getAuditDateInfo } from "./utils/date.js";
 import generateTemplate from "./mailTemplate/generateTemplate.js";
-import { scheduleStatusEnum, TableName, trnParticipantRoleEnum } from "./utils/utils.js";
+import { AduitConstant, scheduleStatusEnum, TableName, trnParticipantRoleEnum } from "./utils/utils.js";
 
 
 let mailconfig = nodemailer.createTransport({
@@ -313,8 +313,7 @@ auditSchedule.post('/send-mail', verifyJWT, async (req, res) => {
                 regardsBy: currentUser?.emp_name,
                 auditorsList: auditorsList,
                 auditeesList: auditeesList,
-                // applicationLink: "https://www.google.com" //TODO: need to update
-                applicationLink: "http://10.51.10.225:5173/" //
+                applicationLink: AduitConstant.applicationLink //
             },
             fileName: 'scheduleSendMail.html'
         })
