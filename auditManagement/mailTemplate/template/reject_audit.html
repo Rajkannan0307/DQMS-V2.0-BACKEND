@@ -6,12 +6,15 @@
     <title></title>
   </head>
   <body style="font-size: small">
-    <h4 style="font-size: medium">Dear Team,</h4>
+    <h4 style="font-size: medium">Dear {{ auditee_name }},</h4>
 
     <p>
       This is to inform you that the corrective action submitted for the
-      <span style="font-weight: bold">{{ audit_type_name }}</span>
-      non-conformance (NC) has been reviewed and Rejected.
+      <span style="font-weight: bold"
+        >{{ audit_type_name }} - {{ audit_name }} [ {{ dept_name }} ]</span
+      >
+      non-conformance (NC) has been reviewed and
+      <span style="color: red; font-weight: bold">Rejected</span>.
     </p>
 
     <p>
@@ -29,6 +32,7 @@
     >
     <p>Best Regards,</p>
     <p style="font-weight: bold">{{ regardsBy }}</p>
+    <p style="font-weight: 400">{{ dept_name }}</p>
 
     <div
       style="width: 100%; height: 1px; background: #b6b6b6; margin: 16px 0"

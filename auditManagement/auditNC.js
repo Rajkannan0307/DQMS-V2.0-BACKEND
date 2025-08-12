@@ -215,6 +215,8 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
         const plant_id = ncdataList[0]?.plant_id;
         const dept_id = ncdataList[0]?.dept_id;
         const schedule_detail_id = ncdataList[0]?.schedule_detail_id;
+        const nc_auditor = ncdataList[0]?.nc_auditor;
+        const nc_auditee = ncdataList[0]?.nc_auditee;
         const userId = req.user;
 
         const mailDataResult = await pool.request()
@@ -225,6 +227,8 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
             .input('userId', userId)
             .input('CORP_role_id', '5')
             .input('PLANT_role_id', '6')
+            .input('nc_auditor', nc_auditor)
+            .input('nc_auditee', nc_auditee)
             .query(`
                     SELECT 
                         MAT.Audit_Name,
@@ -278,7 +282,10 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
                             FROM ${TableName.mst_employees}
                             WHERE role_id=@PLANT_role_id AND del_status=0
                             FOR JSON PATH
-                        ) as plant_head
+                        ) as plant_head,
+
+                    auditor.emp_name as auditor_name,
+                    auditee.emp_name as auditee_name
 
                     FROM ${TableName.Mst_Digital_Audit_Type} AS MAT
                     LEFT JOIN ${TableName.mst_plant} AS MP ON MP.plant_id=@plant_id
@@ -286,6 +293,8 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
                     LEFT JOIN ${TableName.Trn_audit_schedule_details} AS sd ON sd.schedule_detail_id=@schedule_detail_id
                     LEFT JOIN ${TableName.Trn_audit_schedule_header} AS sh ON sh.schedule_id=sd.schedule_id
                     LEFT JOIN ${TableName.mst_employees} AS emp ON emp.gen_id=@userId
+                    LEFT JOIN ${TableName.mst_employees} AS auditor ON auditor.gen_id = @nc_auditor
+                    LEFT JOIN ${TableName.mst_employees} AS auditee ON auditee.gen_id = @nc_auditee
                     WHERE MAT.Audit_Id=@audit_type_id
                 `)
 
@@ -310,8 +319,8 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
             // Send to all auditors except current user
             toMailList = auditors
                 // .filter(a => a.email && a.gen_id !== req.user)
-                .filter(a => a.email)
-                .map(a => a.email);
+                ?.filter(a => a.email)
+                ?.map(a => a.email);
         }
         else if ([NcActionType.auditor_approve, NcActionType.auditor_query].includes(actionType)) {
             // Send to all auditees except current user
@@ -326,42 +335,48 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
         let mailSub = "";
 
         if (actionType === NcActionType.auditee_submit) {
-            mailSub = `${auditMailInfo?.plant_name || ""}_${auditMailInfo?.Audit_Name}_${auditMailInfo?.schedulerName}[${auditMailInfo?.dept_name?.trim()}] - NC Action Submitted`
+            mailSub = `${auditMailInfo?.plant_name || ""} _ ${auditMailInfo?.Audit_Name} _ ${auditMailInfo?.schedulerName} [${auditMailInfo?.dept_name?.trim()}] - NC Action Submitted`
             htmlData = generateTemplate({
                 variables: {
-                    audit_type_name: auditMailInfo?.Audit_Name,
-                    audit_name: auditMailInfo?.schedularName,
+                    auditor_name: auditMailInfo?.auditor_name || "Team",
+                    audit_type_name: auditMailInfo?.Audit_Name || "",
+                    dept_name: auditMailInfo?.dept_name?.trim() || "",
+                    audit_name: auditMailInfo?.schedulerName || "",
                     applicationLink: "http://10.51.10.225:5173/", //,
-                    regardsBy: auditMailInfo?.emp_name
+                    regardsBy: auditMailInfo?.emp_name || "Rane"
                 },
                 fileName: 'submission_audit.html'
             })
 
         } else if (actionType === NcActionType.auditor_approve) {
-            mailSub = `${auditMailInfo?.plant_name || ""}_${auditMailInfo?.Audit_Name}_${auditMailInfo?.schedulerName}[${auditMailInfo?.dept_name?.trim()}] - NC Action Approved`
+            mailSub = `${auditMailInfo?.plant_name || ""} _ ${auditMailInfo?.Audit_Name} _ ${auditMailInfo?.schedulerName} [${auditMailInfo?.dept_name?.trim()}] - NC Action Approved`
             htmlData = generateTemplate({
                 variables: {
-                    audit_type_name: auditMailInfo?.Audit_Name,
-                    audit_name: auditMailInfo?.schedularName,
+                    auditee_name: auditMailInfo?.auditee_name || "Team",
+                    audit_type_name: auditMailInfo?.Audit_Name || "",
+                    dept_name: auditMailInfo?.dept_name?.trim() || "",
+                    audit_name: auditMailInfo?.schedulerName || "",
                     applicationLink: "http://10.51.10.225:5173/", //
-                    regardsBy: auditMailInfo?.emp_name
+                    regardsBy: auditMailInfo?.emp_name || "Rane"
                 },
                 fileName: 'agree_audit.html'
             })
         } else if (actionType === NcActionType.auditor_query) {
-            mailSub = `${auditMailInfo?.plant_name || ""}_${auditMailInfo?.Audit_Name}_${auditMailInfo?.schedulerName}[${auditMailInfo?.dept_name?.trim()}] - NC Action Rejected`
+            mailSub = `${auditMailInfo?.plant_name || ""} _ ${auditMailInfo?.Audit_Name} _ ${auditMailInfo?.schedulerName} [${auditMailInfo?.dept_name?.trim()}] - NC Action Rejected`
             htmlData = generateTemplate({
                 variables: {
-                    audit_type_name: auditMailInfo?.Audit_Name,
-                    audit_name: auditMailInfo?.schedularName,
+                    auditee_name: auditMailInfo?.auditee_name || "Team",
+                    audit_type_name: auditMailInfo?.Audit_Name || "",
+                    dept_name: auditMailInfo?.dept_name?.trim() || "",
+                    audit_name: auditMailInfo?.schedulerName || "",
                     applicationLink: "http://10.51.10.225:5173/", //
-                    regardsBy: auditMailInfo?.emp_name
+                    regardsBy: auditMailInfo?.emp_name || "Rane"
                 },
                 fileName: 'reject_audit.html'
             })
         }
 
-        // console.log(actionType, htmlData, mailSub)
+        console.log(actionType, htmlData, mailSub)
         // console.log(mailSub)
 
         const check = [NcActionType.auditee_submit, NcActionType.auditor_approve, NcActionType.auditor_query]
@@ -369,10 +384,8 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
             // console.log(scheduleHeader)
             const mailPayload = {
                 from: "noreplyrml@ranegroup.com",
-                // to: toMailList,
-                // cc: ccMailList,
-                //'g.kumar@ranegroup.com'
-                to: ['a.chandran@ranegroup.com'],
+                to: toMailList,
+                cc: ccMailList,
                 subject: mailSub,
                 html: htmlData
             }

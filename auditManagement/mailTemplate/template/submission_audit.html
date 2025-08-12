@@ -6,14 +6,16 @@
     <title></title>
   </head>
   <body style="font-size: small">
-    <h4 style="font-size: medium">Dear Team,</h4>
+    <h4 style="font-size: medium">Dear {{ auditor_name }},</h4>
     <p>
       The corrective actions related to the
-      <span style="font-weight: bold">{{ audit_type_name }}</span> observations,
-      and the required details have been updated in the DQMS portal.
+      <span style="font-weight: bold"
+        >{{ audit_type_name }} - {{ audit_name }} [ {{ dept_name }} ]</span
+      >
+      observations, and the required details have been updated in the DQMS
+      portal.
     </p>
 
-    <p style="font-weight: bold">DQMS → Audit Management → Audit NC_CAR</p>
     <p>
       Request you to kindly review the submitted actions and proceed with the
       review at your earliest convenience.
@@ -23,11 +25,13 @@
       out.
     </p>
     <p>Thank you for your support and timely review.</p>
+    <p style="font-weight: bold">DQMS → Audit Management → Audit NC_CAR</p>
     <a href="{{ applicationLink }}" style="font-weight: bold"
       >DQMS APPLICATION LINK</a
     >
     <p>Best Regards,</p>
     <p style="font-weight: bold">{{ regardsBy }}</p>
+    <p style="font-weight: 400">{{ dept_name }}</p>
 
     <div
       style="width: 100%; height: 1px; background: #b6b6b6; margin: 16px 0"
