@@ -128,9 +128,11 @@ auditNc.get("/edit_nc_data", verifyJWT, async (req, res) => {
                         nc.*,
                         mac.Major_Clause,
                         mac.Sub_Clause,
-                        mac.Check_Point
+                        mac.Check_Point,
+                        tar.Rev_No
                     FROM ${TableName.trn_audit_nc} AS nc
                     LEFT JOIN ${TableName.Mst_Audit_Checkpoint} AS mac ON mac.Audit_Checkpoint_Id = nc.audit_checkpoint_id
+                    LEFT JOIN ${TableName.trn_audit_result} AS tar ON tar.schedule_details_id = nc.schedule_detail_id AND tar.checkpoint_id = nc.audit_checkpoint_id 
                     ---WHERE nc.nc_auditor = @userId OR nc.nc_auditee = @userId 
                     WHERE nc.schedule_detail_id = @schedule_detail_id
                 `)

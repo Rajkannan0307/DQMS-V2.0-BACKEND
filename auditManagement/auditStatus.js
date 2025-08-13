@@ -459,15 +459,26 @@ auditStatus.get("/result", verifyJWT, async (req, res) => {
         }
         // TODO:
         // const roleAudit = isAuditeeView === 'true' ? trnParticipantRoleEnum.Auditee : trnParticipantRoleEnum.Auditor
+        // const participantResult = await pool.request()
+        //     .input("gen_id", userId)
+        //     .input("role", trnParticipantRoleEnum.Auditee)
+        //     // .input("role", trnParticipantRoleEnum.Auditor)
+        //     .query(`
+        //             SELECT 
+        //             *
+        //             FROM ${TableName.Trn_audit_participants} 
+        //             WHERE gen_id = @gen_id AND role = @role
+        //         `)
+
         const participantResult = await pool.request()
             .input("gen_id", userId)
-            .input("role", trnParticipantRoleEnum.Auditee)
-            // .input("role", trnParticipantRoleEnum.Auditor)
+            // .input("role", trnParticipantRoleEnum.Auditee)
+            // .input("role1", trnParticipantRoleEnum.Auditor)
             .query(`
                     SELECT 
                     *
                     FROM ${TableName.Trn_audit_participants} 
-                    WHERE gen_id = @gen_id AND role = @role
+                    WHERE gen_id = @gen_id AND (role = 'Auditee' OR role = 'Auditor')
                 `)
 
         const participants = participantResult?.recordset;
