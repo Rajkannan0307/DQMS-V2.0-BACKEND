@@ -32,7 +32,9 @@ inspection.post("/saveInspection", async (req, res) => {
       samples,
       part_id,
       heatCode,
-      inspec
+      inspec,
+      sup,
+      rem
     } = req.body;
 
     const pool = await poolPromise;
@@ -76,6 +78,8 @@ inspection.post("/saveInspection", async (req, res) => {
     table.columns.add("Part_Id", sql.Int,);
     table.columns.add("Inspection_Id", sql.Int,);
     table.columns.add("Machine_Id", sql.Int,);
+    table.columns.add("Supervisor", sql.VarChar(100));
+    table.columns.add("Remarks", sql.VarChar(500));
     inspection_data.map((elemet) => {
       table.rows.add(
         inserted_id,
@@ -94,7 +98,9 @@ inspection.post("/saveInspection", async (req, res) => {
         check_list_id,
         part_id,
         inspec,
-        reference
+        reference,
+        sup,
+        rem
       );
     });
     console.log('table', table);
@@ -103,7 +109,8 @@ inspection.post("/saveInspection", async (req, res) => {
 
     const insertData = await pool.request().bulk(table);
 
-    const updateData = await pool.request().query(`exec update_inspection_new`);
+    const updateData = await pool.request().query(`exec update_inspection_new_1`);
+    console.log('update Data', updateData)
     res.status(201).json({ message: "success" });
   } catch (error) {
     console.log(error);
@@ -137,7 +144,7 @@ inspection.get("/getinspectiondetails", async (req, res) => {
       .query(`exec get_checklist_details ${id},'${type}'`);
 
     let trn_inspection_data = await pool.request()
-      .query(`select check_point,min,max,special_char,insp_method,type,sample1,sample2,sample3,sample4,sample5,result1,result2,result3,result4,result5,final_result from trn_checklist_result as cr
+      .query(`select check_point,min,max,special_char,insp_method,type,sample1,sample2,sample3,sample4,sample5,result1,result2,result3,result4,result5,final_result,Supervisor, Remarks, cr.created_on   from trn_checklist_result as cr
     join mst_checklist_items as ci on ci.checklist_item_id=cr.checklist_item_id
     where trn_checklist=${id} order by trn_checklist`);
     res.status(200).json({
