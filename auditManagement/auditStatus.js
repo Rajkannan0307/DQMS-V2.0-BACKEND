@@ -178,7 +178,7 @@ auditStatus.get("/view-results", verifyJWT, async (req, res) => {
                     `)
 
 
-        console.log(result?.recordset);
+        // console.log(result?.recordset);
 
         if (result?.recordset?.length <= 0) {
             return res.status(200).json({ success: true, data: [], message: "Checksheet is empty for this Audit_Id, Plant, Department" });
