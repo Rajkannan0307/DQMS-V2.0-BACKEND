@@ -56,6 +56,35 @@ auditReports.post("/scheduler_report", verifyJWT, async (req, res) => {
     }
 })
 
+// For Scheduler header report data 
+auditReports.post("/scheduler_report2", verifyJWT, async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const body = req?.body;
+
+        const schedule_id = body?.schedule_id;
+        const year = body?.year;
+        const plant_id = body?.plant_id;
+
+        const result = await pool.request()
+            .input('schedule_id', schedule_id)
+            .input('year', year)
+            .input('plant_id', plant_id)
+            .execute('get_audit_schedule_report2')
+
+        const finalResult = result?.recordset?.map((e) => {
+            if (e?.auditors) e.auditors = JSON.parse(e.auditors)
+            if (e?.auditees) e.auditees = JSON.parse(e.auditees)
+            return e;
+        });
+
+        return res.status(200).json({ success: true, data: finalResult });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, data: 'Internal server error' })
+    }
+})
+
 // For Audit result report data 
 auditReports.post("/audit_result_report", verifyJWT, async (req, res) => {
     try {
