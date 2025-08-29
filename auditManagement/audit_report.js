@@ -61,12 +61,14 @@ auditReports.post("/scheduler_report2", verifyJWT, async (req, res) => {
     try {
         const pool = await poolPromise;
         const body = req?.body;
-
+        console.log(body)
+        const audit_type_id = body?.audit_type_id;
         const schedule_id = body?.schedule_id;
         const year = body?.year;
         const plant_id = body?.plant_id;
 
         const result = await pool.request()
+            .input('audit_type_id', audit_type_id)
             .input('schedule_id', schedule_id)
             .input('year', year)
             .input('plant_id', plant_id)
@@ -77,6 +79,8 @@ auditReports.post("/scheduler_report2", verifyJWT, async (req, res) => {
             if (e?.auditees) e.auditees = JSON.parse(e.auditees)
             return e;
         });
+
+        console.log(finalResult.length, "Schedule report 2")
 
         return res.status(200).json({ success: true, data: finalResult });
     } catch (error) {
@@ -137,6 +141,52 @@ auditReports.post("/audit_result_report", verifyJWT, async (req, res) => {
                 sheet2: finalResult2
             },
         });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, data: 'Internal server error' })
+    }
+})
+
+
+auditReports.get("/getYears", verifyJWT, async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request().execute('GetAuditReportYearRange')
+        console.log(result?.recordset)
+        return res.status(200).json({ success: true, data: result?.recordset });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, data: 'Internal server error' })
+    }
+})
+
+auditReports.post("/get_aduit_full_report", verifyJWT, async (req, res) => {
+    try {
+        const pool = await poolPromise;
+        const body = req?.body;
+        console.log(body)
+        const audit_type_id = body?.audit_type_id;
+        const schedule_id = body?.schedule_id;
+        const year = body?.year;
+        const plant_id = body?.plant_id;
+
+        const result = await pool.request()
+            .input('audit_type_id', audit_type_id)
+            .input('schedule_id', schedule_id)
+            .input('year', year)
+            .input('plant_id', plant_id)
+            .execute('GetAuditFullScheduleReport')
+
+        const finalResult = result?.recordset?.map((e) => {
+            if (e?.auditors) e.auditors = JSON.parse(e.auditors)
+            if (e?.auditees) e.auditees = JSON.parse(e.auditees)
+            if (e?.result) e.result = JSON.parse(e?.result)
+            return e;
+        });
+
+        console.log(finalResult.length, "Schedule report 2")
+
+        return res.status(200).json({ success: true, data: finalResult });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ success: false, data: 'Internal server error' })
