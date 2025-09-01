@@ -330,11 +330,21 @@ auditSchedule.post('/send-mail', verifyJWT, async (req, res) => {
 
         console.log("mailPayload", mailPayload)
 
-        mailconfig.sendMail(mailPayload, function (error, info) {
+        mailconfig.sendMail(mailPayload, async function (error, info) {
             if (error) {
                 console.log('Error Sending Mail', error);
             } else {
                 console.log("Email sent: " + info.response);
+
+                // update is_email_sent status
+
+                await pool.request()
+                    .input('schedule_id', schedule_id)
+                    .query(`
+                            UPDATE ${TableName.Trn_audit_schedule_header}
+                            SET is_email_sent = 1
+                            WHERE schedule_id = @schedule_id
+                        `)
             }
         })
         return res.status(200).json({ success: true, data: 'success' });
