@@ -8,48 +8,29 @@ dotenv.config();
 
 const login = express.Router();
 //ad
-// login.post("/", async (req, res) => {
-//   try {
-//     let { genid, password } = req.body;
-//     let pool = await poolPromise;
-//     let query = `select gen_id from mst_employees where gen_id='${genid}' and  del_status=0`;
-//     let result = await pool.request().query(query);
-//     if (result.rowsAffected[0] == 1) {
-//       const ad = new ActiveDirectory({
-//         url: "ldap://10.0.1.73",
-//         baseDN: "dc=RANE,dc=com",
-//       });
-//       ad.authenticate(`${genid}@rane.com`, password, (err, auth) => {
-//         if (auth) {
-//           res
-//             .status(200)
-//             .json({
-//               token: jwt.sign(genid, process.env.SECRET),
-//               gen_id: genid,
-//             });
-//         } else {
-//           res.status(401).send({ details: "Invalid Credentials" })
-//         }
-//       });
-//     } else {
-//       throw new Error({ details: "Invalid Credentials" });
-//     }
-//   } catch (error) {
-//     console.error(error);
-//     res.status(401).json(error);
-//   }
-// });
-//db
 login.post("/", async (req, res) => {
   try {
     let { genid, password } = req.body;
     let pool = await poolPromise;
-    let query = `select gen_id from mst_employees where gen_id='${genid}' and mobile_no='${password}' and  del_status=0`;
+    let query = `select gen_id from mst_employees where gen_id='${genid}' and  del_status=0`;
     let result = await pool.request().query(query);
     if (result.rowsAffected[0] == 1) {
-      res
-        .status(200)
-        .json({ token: jwt.sign(genid, process.env.SECRET), gen_id: genid });
+      const ad = new ActiveDirectory({
+        url: "ldap://10.0.1.73",
+        baseDN: "dc=RANE,dc=com",
+      });
+      ad.authenticate(`${genid}@rane.com`, password, (err, auth) => {
+        if (auth) {
+          res
+            .status(200)
+            .json({
+              token: jwt.sign(genid, process.env.SECRET),
+              gen_id: genid,
+            });
+        } else {
+          res.status(401).send({ details: "Invalid Credentials" })
+        }
+      });
     } else {
       throw new Error({ details: "Invalid Credentials" });
     }
@@ -58,6 +39,25 @@ login.post("/", async (req, res) => {
     res.status(401).json(error);
   }
 });
+//db
+// login.post("/", async (req, res) => {
+//   try {
+//     let { genid, password } = req.body;
+//     let pool = await poolPromise;
+//     let query = `select gen_id from mst_employees where gen_id='${genid}' and mobile_no='${password}' and  del_status=0`;
+//     let result = await pool.request().query(query);
+//     if (result.rowsAffected[0] == 1) {
+//       res
+//         .status(200)
+//         .json({ token: jwt.sign(genid, process.env.SECRET), gen_id: genid });
+//     } else {
+//       throw new Error({ details: "Invalid Credentials" });
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     res.status(401).json(error);
+//   }
+// });
 
 login.get("/userDetails", verifyJWT, async (req, res) => {
   try {
