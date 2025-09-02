@@ -571,7 +571,7 @@ inspection.get('/Part_Number', async (req, res) => {
   }
 });
 
-inspection.get('/Get_Machine', async(req, res) => {
+inspection.get('/Get_Machine', async (req, res) => {
   console.log('Machine Request Inspection', req.query);
   try {
     const Plant = req.query.plant;
@@ -588,5 +588,75 @@ inspection.get('/Get_Machine', async(req, res) => {
     res.status(400).json(error);
   }
 });
+
+inspection.get("/get_jf_history_card", async (req, res) => {
+  try {
+    const plant = req.query.plant;
+    const part_id = req.query.part_id;
+    // const module_id = req.query.module_id;
+    // const line_id = req.query.line_id;
+    // const machine_id = req.query.machine_id;
+
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('plant_id', plant)
+      .input('part_id', part_id)
+      // .input('module_id', module_id)
+      // .input('line_id', line_id)
+      // .input('machine_id', machine_id)
+      // .input('Inspection_Id', inspection)
+      .execute('JF_Histroy_Card') //Maybe can update
+
+    // console.log(result?.recordset)
+    return res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, data: 'Internal server error' })
+  }
+})
+
+inspection.get("/get_jf_history_card_report", async (req, res) => {
+  try {
+    const plant = req.query.plant;
+    const part_id = req.query.part_id;
+
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('plant_id', plant)
+      .input('part_id', part_id)
+      .execute('JF_Histroy_Card_Report') //Maybe can update
+
+    // console.log(result?.recordset)
+    return res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, data: 'Internal server error' })
+  }
+})
+
+inspection.get("/get_parts", async (req, res) => {
+  try {
+    const plant = req.query.plant;
+
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input("plant_id", plant)
+      .query(`
+            SELECT
+                DISTINCT CR.part_id,
+                MP.part_name
+                FROM trn_checklist_result AS CR   
+                LEFT JOIN mst_part AS MP ON MP.part_id = CR.part_id
+            WHERE 
+            CR.Inspection_Id = 6
+            AND MP.plant_id = @plant_id
+        `)
+    // console.log(result?.recordset)
+    return res.status(200).json({ success: true, data: result.recordset });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, data: 'Internal server error' })
+  }
+})
 
 export default inspection;
