@@ -2,7 +2,7 @@ import { response, Router } from "express";
 import poolPromise from "../db.js";
 import verifyJWT from "../middleware/auth.js";
 
-let report = Router();
+const report = Router();
 
 report.get('/Get_Inspection_Type', verifyJWT, async (req, res) => {
     console.log('Report Part Number', req.query);
@@ -46,7 +46,7 @@ report.get('/Part_Number', verifyJWT, async (req, res) => {
     }
 });
 
-report.get('/Check_Points', verifyJWT, async(req, res) => {
+report.get('/Check_Points', verifyJWT, async (req, res) => {
     console.log('Checkpoint Query', req.query);
     try {
         const part = req.query.part;
@@ -94,7 +94,7 @@ report.get('/Get_Machine', verifyJWT, async (req, res) => {
     }
 });
 
-report.get('/Get_Chart', verifyJWT, async(req, res) => {
+report.get('/Get_Chart', verifyJWT, async (req, res) => {
     console.log('Chart Params', req.query);
     try {
         const pool = await poolPromise;
@@ -131,7 +131,7 @@ report.get('/Get_Chart', verifyJWT, async(req, res) => {
             .input('Insp', Insp)
             .execute('GetCpCpk');
 
-            // console.log('result', result.recordsets)
+        // console.log('result', result.recordsets)
 
         res.status(200).json({
             Data: result.recordsets[0],

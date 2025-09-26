@@ -1,6 +1,7 @@
 import { Router } from "express";
 import poolPromise, { sql } from "../db.js";
 import nodemailer from "nodemailer";
+import verifyJWT from "../middleware/auth.js";
 
 let inspection = Router();
 
@@ -654,6 +655,54 @@ inspection.get("/get_parts", async (req, res) => {
         `)
     // console.log(result?.recordset)
     return res.status(200).json({ success: true, data: result.recordset });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, data: 'Internal server error' })
+  }
+})
+
+
+// ===== NC REASSGIN API
+
+inspection.post("/nc_reassign", verifyJWT, async (req, res) => {
+  try {
+    const pool = await poolPromise;
+
+    const body = req.body;
+    const emp_id = body.emp_id; //refers to inactive user
+    const reassign_emp_id = body.reassign_emp_id; // refer to active user ... has to reassign for inactive user
+
+    console.log(body)
+
+    if (!emp_id || !reassign_emp_id) {
+      console.log("NC Re_Assign failed, Employee or reassign employee id is missing")
+      return res.status(400).json({ success: false, data: "NC Re_Assign failed, Employee or reassign employee is missing" })
+    }
+
+    const result = await pool.request()
+      .input('emp_id', String(emp_id))
+      .query(`
+        SELECT * from trn_nc WHERE emp_id=@emp_id 
+        AND (status IS NULL OR status NOT IN ('closed'));
+      `)
+
+    if (result?.recordset?.length <= 0) {
+      return res.status(400).json({ success: false, data: 'The selected in-active user has no NCs' })
+    }
+
+    // console.log(result?.recordset.length)
+
+    await pool.request()
+      .input('emp_id', String(emp_id))
+      .input('reassign_emp_id', String(reassign_emp_id))
+      .query(`
+           UPDATE trn_nc SET
+           emp_id=@reassign_emp_id
+           WHERE emp_id=@emp_id 
+           AND (status IS NULL OR status NOT IN ('closed'));
+        `)
+
+    return res.status(200).json({ success: true, data: 'NC Reassigned successfully' })
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, data: 'Internal server error' })

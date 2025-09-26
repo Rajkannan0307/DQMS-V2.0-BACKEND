@@ -162,9 +162,9 @@ operationMaster.post("/part", verifyJWT, async (req, res) => {
     );
 
     const DupPart = DuplicateCheck.recordset[0].DupPart;
-    if(DupPart > 0) {
+    if (DupPart > 0) {
       console.log("Part Number Already Available");
-      res.status(200).json({ message: `${part_number} - Part Number Already Available`});
+      res.status(200).json({ message: `${part_number} - Part Number Already Available` });
     } else {
       const response = await pool.request().query(
         `insert into mst_part(part_name,part_number,model_name,product_id,plant_id,created_by,created_on,del_status)
@@ -298,6 +298,7 @@ operationMaster.get("/checklist", verifyJWT, async (req, res) => {
     let query = `exec checklist_master_data ${role_id == 1 ? "" : `${plant_id}`
       }`;
     let response = await pool.request().query(query);
+    console.log(response.recordset)
     res.status(200).json(response.recordset);
   } catch (error) {
     console.log(error);
@@ -313,7 +314,7 @@ operationMaster.get("/partchecklist", async (req, res) => {
     let response = await pool
       .request()
       .query(
-        `select check_list_id,check_list_name from mst_check_list where type='part' and  del_status=0 and plant_id=${plant_id}` 
+        `select check_list_id,check_list_name from mst_check_list where type='part' and  del_status=0 and plant_id=${plant_id}`
       );
     res.status(200).json(response.recordset);
   } catch (error) {
@@ -325,7 +326,7 @@ operationMaster.get("/partchecklist", async (req, res) => {
 operationMaster.post("/checklist", async (req, res) => {
   try {
     console.log(req.body);
-    
+
     let {
       check_list_name,
       inspection_id,
@@ -354,82 +355,82 @@ operationMaster.post("/checklist", async (req, res) => {
       if (type == "part") reference_id = 0;
 
 
-    let query = `
+      let query = `
     DECLARE @InsertedPrimaryKey INT;
     insert into mst_check_list(check_list_name,type,inspection_id,reference_id,no_of_samples,plant_id,revision_no,created_by,created_on,del_status)
     values('${check_list_name}','${type}','${inspection_id}','${reference_id}','${no_of_samples}','${plant_id}','${revision_no}','${user}',CURRENT_TIMESTAMP,0)
     SET @InsertedPrimaryKey = SCOPE_IDENTITY();
     SELECT @InsertedPrimaryKey AS InsertedPrimaryKey;`;
 
-    let response = await pool.request().query(query);
-    let inserted_id;
-    if (response.rowsAffected[0] == 1) {
-      inserted_id = response.recordset[0].InsertedPrimaryKey;
-    }
-    console.log('id', inserted_id);
-    
-
-    let invalidValues = ["", null, undefined];
-    let filteredData = fileData.filter((item) => {
-      if (item.insp_type === "VARIABLE") {
-        return (
-          !invalidValues.includes(item.insp_parameter_name) &&
-          // !invalidValues.includes(item.special_char) &&
-          !invalidValues.includes(item.insp_method) &&
-          !invalidValues.includes(item.min_value) &&
-          !invalidValues.includes(item.max_value)
-        );
-      } else if (item.insp_type === "ATTRIBUTE") {
-        return (
-          !invalidValues.includes(item.insp_parameter_name) &&
-          // !invalidValues.includes(item.special_char) &&
-          !invalidValues.includes(item.insp_method)
-        );
+      let response = await pool.request().query(query);
+      let inserted_id;
+      if (response.rowsAffected[0] == 1) {
+        inserted_id = response.recordset[0].InsertedPrimaryKey;
       }
-    });
+      console.log('id', inserted_id);
 
-    const table = new sql.Table("#tempdata");
-    table.create = true;
-    table.columns.add("checklist_id", sql.Int, { nullable: false });
-    table.columns.add("check_point", sql.VarChar(250), { nullable: false });
-    table.columns.add("type", sql.VarChar(10), { nullable: false });
-    table.columns.add("special_char", sql.VarChar(50), { nullable : true});
-    table.columns.add("min", sql.VarChar(10), { nullable: true });
-    table.columns.add("max", sql.VarChar(10), { nullable: true });
-    table.columns.add("insp_method", sql.VarChar(250), { nullable: false });
-    table.columns.add("user_id", sql.Int, { nullable: false });
-    filteredData.forEach((element) => {
-      const minValue = element.insp_type === "ATTRIBUTE" ? null : element.min_value == undefined ? null : `${element.min_value}`;
-      const maxValue = element.insp_type === "ATTRIBUTE" ? null : element.max_value == undefined ? null : `${element.max_value}`;
-      table.rows.add(
-        inserted_id,
-        element.insp_parameter_name,
-        element.insp_type,
-        element.special_char == undefined ? null : `${element.special_char}`,
-        minValue,
-        maxValue,
-        element.insp_method,
-        user
-      );
-    });
-    console.log('rows', table.rows);
-    
 
-    console.log('table',table);
-    
-    const insertData = await pool.request().bulk(table);
-    let resp = await pool.request().query(`exec insert_checklist`);
-    console.log('insertdata', insertData);
-    console.log('resp', resp);
-    
-    
+      let invalidValues = ["", null, undefined];
+      let filteredData = fileData.filter((item) => {
+        if (item.insp_type === "VARIABLE") {
+          return (
+            !invalidValues.includes(item.insp_parameter_name) &&
+            // !invalidValues.includes(item.special_char) &&
+            !invalidValues.includes(item.insp_method) &&
+            !invalidValues.includes(item.min_value) &&
+            !invalidValues.includes(item.max_value)
+          );
+        } else if (item.insp_type === "ATTRIBUTE") {
+          return (
+            !invalidValues.includes(item.insp_parameter_name) &&
+            // !invalidValues.includes(item.special_char) &&
+            !invalidValues.includes(item.insp_method)
+          );
+        }
+      });
 
-    res.status(201).json({ Message: 'Checklist Created Successfully' });
+      const table = new sql.Table("#tempdata");
+      table.create = true;
+      table.columns.add("checklist_id", sql.Int, { nullable: false });
+      table.columns.add("check_point", sql.VarChar(sql.MAX), { nullable: false });
+      table.columns.add("type", sql.VarChar(10), { nullable: false });
+      table.columns.add("special_char", sql.VarChar(50), { nullable: true });
+      table.columns.add("min", sql.VarChar(10), { nullable: true });
+      table.columns.add("max", sql.VarChar(10), { nullable: true });
+      table.columns.add("insp_method", sql.VarChar(250), { nullable: false });
+      table.columns.add("user_id", sql.Int, { nullable: false });
+      filteredData.forEach((element) => {
+        const minValue = element.insp_type === "ATTRIBUTE" ? null : element.min_value == undefined ? null : `${element.min_value}`;
+        const maxValue = element.insp_type === "ATTRIBUTE" ? null : element.max_value == undefined ? null : `${element.max_value}`;
+        table.rows.add(
+          inserted_id,
+          element.insp_parameter_name,
+          element.insp_type,
+          element.special_char == undefined ? null : `${element.special_char}`,
+          minValue,
+          maxValue,
+          element.insp_method,
+          user
+        );
+      });
+      console.log('rows', table.rows);
+
+
+      console.log('table', table);
+
+      const insertData = await pool.request().bulk(table);
+      let resp = await pool.request().query(`exec insert_checklist`);
+      console.log('insertdata', insertData);
+      console.log('resp', resp);
+
+
+
+      res.status(201).json({ Message: 'Checklist Created Successfully' });
     }
 
-    
+
   } catch (error) {
-    console.log('error-error',error);
+    console.log('error-error', error);
     res.status(400).json(error);
   }
 });
@@ -523,13 +524,14 @@ operationMaster.get("/checklistitem", async (req, res) => {
 
 operationMaster.post("/addChecklistItem", async (req, res) => {
   try {
-    let { id, special_char, insp_method, check_point, min, max, user, type } =
+    let { id, special_char, insp_method, check_point, min, max, user, type, seq_no } =
       req.body;
+    console.log(req.body)
     const pool = await poolPromise;
     const response = await pool
       .request()
       .query(
-        `insert into mst_checklist_items (check_list_id,check_point,insp_method,special_char,type,min,max,created_by,created_on,del_status) values('${id}','${check_point}','${insp_method}','${special_char}','${type}','${min}','${max}','${user}',CURRENT_TIMESTAMP,0)`
+        `insert into mst_checklist_items (check_list_id,check_point,insp_method,special_char,type,min,max,created_by,created_on,del_status, seq_no) values('${id}','${check_point}','${insp_method}','${special_char}','${type}','${min}','${max}','${user}',CURRENT_TIMESTAMP,0, '${seq_no}')`
       );
     if (response.rowsAffected == 1) {
       res.status(201).json({ status: "successfull" });
@@ -586,8 +588,8 @@ operationMaster.post("/checklistMapping", async (req, res) => {
          select inspection_id from mst_check_list where check_list_id=${checklist_id}  
       `);
 
-      const Insp_Id = Insp_check.recordset[0].inspection_id;
-      console.log('insp id', Insp_Id)
+    const Insp_Id = Insp_check.recordset[0].inspection_id;
+    console.log('insp id', Insp_Id)
     let checkDuplicate = await pool
       .request()
       .query(
@@ -596,7 +598,7 @@ left join mst_check_list c on c.check_list_id = m.checklist_id
  where m.part_id='${part_id}' and m.checklist_id='${checklist_id}' and m.plant_id='${plant_id}' and m.del_status=0 and c.inspection_id=${Insp_Id}`
       );
 
-      console.log(`select m.* from mst_checklist_mapping m
+    console.log(`select m.* from mst_checklist_mapping m
 left join mst_check_list c on c.check_list_id = m.checklist_id
  where m.part_id='${part_id}' and m.checklist_id='${checklist_id}' and m.plant_id='${plant_id}' and m.del_status=0 and c.inspection_id=${Insp_Id}`)
     if (checkDuplicate.rowsAffected >= 1) {
@@ -678,5 +680,26 @@ operationMaster.put("/partmapping", async (req, res) => {
     res.status(400).json({ message: 'Error While Updating Part Mapping' });
   }
 });
+
+operationMaster.put("/checklist_item_reorder", verifyJWT, async (req, res) => {
+  try {
+    const body = req.body;
+
+    let { check_list_items, user } = req.body;
+
+    let pool = await poolPromise;
+    for await (const item of check_list_items) {
+      let response = await pool
+        .request()
+        .query(
+          `update mst_checklist_items set seq_no='${item?.seq_no}' where checklist_item_id='${item.checklist_item_id}'`
+        );
+    }
+    return res.status(201).json({ status: "success" });
+  } catch (error) {
+    console.error('Error While Updating Part Checklist item reorder', error);
+    res.status(500).json({ message: 'Error While Updating Checklist item Reorder' });
+  }
+})
 
 export default operationMaster;

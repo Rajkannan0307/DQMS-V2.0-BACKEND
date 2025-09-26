@@ -364,11 +364,42 @@ master.get("/line", verifyJWT, async (req, res) => {
   try {
     const pool = await poolPromise;
     const response = await pool.request()
-      .query(`select l.line_id,l.line_name,l.module_id,m.module_name,l.dept_id,d.dept_name,l.plant_id,p.plant_name,l.del_status from mst_line as l
-                join mst_plant as p on p.plant_id=l.plant_id
-                join mst_department as d on d.dept_id=l.dept_id
-                join mst_module as m on m.module_id=l.module_id`);
-    res.status(200).json(response.recordset);
+      // .query(`select l.line_id,l.line_name,l.module_id,m.module_name,l.dept_id,d.dept_name,l.plant_id,p.plant_name,l.del_status from mst_line as l
+      //           join mst_plant as p on p.plant_id=l.plant_id
+      //           join mst_department as d on d.dept_id=l.dept_id
+      //           join mst_module as m on m.module_id=l.module_id`);
+      // res.status(200).json(response.recordset);
+      .query(`
+          SELECT 
+              l.line_id,
+              l.line_name,
+              l.module_id,
+              m.module_name,
+              l.dept_id,
+              d.dept_name,
+              l.plant_id,
+              p.plant_name,
+              l.del_status,
+              (
+                  SELECT inspection_type_id
+                  FROM line_inspection_type_mapping 
+                  WHERE line_id = l.line_id
+                  FOR JSON PATH
+              ) AS inspection_type_ids
+          FROM mst_line AS l
+          JOIN mst_plant AS p ON p.plant_id = l.plant_id
+          JOIN mst_department AS d ON d.dept_id = l.dept_id
+          JOIN mst_module AS m ON m.module_id = l.module_id;
+        `)
+
+    const result = response.recordset?.map((e) => {
+      return {
+        ...e,
+        inspection_type_ids: JSON.parse(e?.inspection_type_ids)
+      }
+    })
+    // console.log(result)
+    res.status(200).json(result);
   } catch (error) {
     console.error(error);
     res.status(400).json(error);
@@ -377,7 +408,7 @@ master.get("/line", verifyJWT, async (req, res) => {
 
 master.put("/line", async (req, res) => {
   try {
-    let { line_name, user, id, deleted } = req.body;
+    let { line_name, user, id, deleted, inspection_type_ids } = req.body;
     const pool = await poolPromise;
     const response = await pool
       .request()
@@ -385,8 +416,31 @@ master.put("/line", async (req, res) => {
         `update mst_line set line_name='${line_name}',del_status=${deleted ? 1 : 0
         },modified_by='${user}',modified_on=CURRENT_TIMESTAMP where line_id='${id}'`
       );
-    if (response.rowsAffected[0] == 1) {
-      res.status(201).json({ status: "success" });
+    // if (response.rowsAffected[0] == 1) {
+    //   res.status(201).json({ status: "success" });
+    // }
+
+    // If inspection_type_ids is provided, update mapping
+    if (inspection_type_ids && inspection_type_ids.length > 0) {
+      // 1. Remove old mappings
+      await pool.request().query(`
+        DELETE FROM line_inspection_type_mapping
+        WHERE line_id='${id}'
+      `);
+
+      // 2. Insert new mappings
+      for (const inspId of inspection_type_ids) {
+        await pool.request().query(`
+          INSERT INTO line_inspection_type_mapping (line_id, inspection_type_id, created_by, created_on)
+          VALUES ('${id}', '${inspId}', '${user}', CURRENT_TIMESTAMP)
+        `);
+      }
+    }
+
+    if (response.rowsAffected[0] === 1) {
+      return res.status(200).json({ status: "success" });
+    } else {
+      return res.status(404).json({ status: "not found" });
     }
   } catch (error) {
     console.error(error);
@@ -395,17 +449,36 @@ master.put("/line", async (req, res) => {
 });
 master.post("/line", verifyJWT, async (req, res) => {
   try {
-    let { plant_id, dept_id, module_id, line_name, user } = req.body;
+    let { plant_id, dept_id, module_id, line_name, user, inspection_type_ids } = req.body;
     const pool = await poolPromise;
-    const response = await pool.request()
-      .query(`insert into mst_line(line_name,plant_id,dept_id,module_id,created_by,created_on,del_status)
-			values('${line_name}','${plant_id}','${dept_id}','${module_id}','${user}',CURRENT_TIMESTAMP,0)`);
-    if (response.rowsAffected[0] == 1) {
-      res.status(201).json({ status: "success" });
+    const insertLineResult = await pool.request()
+      .query(`
+        insert into mst_line(line_name,plant_id,dept_id,module_id,created_by,created_on,del_status)
+        OUTPUT INSERTED.line_id
+			  values('${line_name}','${plant_id}','${dept_id}','${module_id}','${user}',CURRENT_TIMESTAMP,0)
+      `);
+
+    const lineId = insertLineResult.recordset[0].line_id;
+
+    console.log(req.body, lineId)
+
+    // Insert into mapping table
+    for (const inspId of inspection_type_ids) {
+      await pool.request()
+        .query(`
+          INSERT INTO line_inspection_type_mapping (line_id, inspection_type_id, created_by, created_on)
+          VALUES ('${lineId}', '${inspId}', '${user}', CURRENT_TIMESTAMP)
+        `);
     }
+
+    // if (response.rowsAffected[0] == 1) {
+    //   res.status(201).json({ status: "success" });
+    // }
+
+    return res.status(201).json({ status: "success", line_id: lineId });
   } catch (error) {
     console.error(error);
-    res.status(400).json(error);
+    return res.status(400).json(error);
   }
 });
 
@@ -1313,3 +1386,45 @@ master.get("/checklist_details", verifyJWT, async (req, res) => {
 
 
 // customer ends here...
+
+// NC Reassign used
+
+master.get("/getUserByDelStatus", verifyJWT, async (req, res) => {
+  try {
+    const status = req.query.status;
+    const plant = req.query.plant;
+    const dept = req.query.dept;
+    console.log(req.query)
+    const pool = await poolPromise;
+
+
+    let query = `
+      SELECT * 
+      FROM mst_employees
+      WHERE plant_id = @plant
+        AND del_status = @status
+    `;
+
+    // add dept filter only if status ≠ 0
+    if (status !== "0") {
+      query += ` AND dept_id = @dept`;
+    }
+
+    console.log(query)
+
+
+    const result = await pool.request()
+      .input("status", status)
+      .input("plant", plant)
+      .input("dept", dept)
+      .query(query)
+    // .query(`
+    //   SELECT * FROM mst_employees where plant_id=@plant AND dept_id=@dept AND del_status = @status
+    // `)
+    return res.status(200).json({ success: true, data: result?.recordset });
+  } catch (error) {
+    console.error(error);
+    return res.status(400).json(error?.message);
+  }
+})
+

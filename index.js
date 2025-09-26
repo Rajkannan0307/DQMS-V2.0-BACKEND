@@ -20,6 +20,8 @@ import auditSchedule from "./auditManagement/auditSchedule.js";
 import auditStatus from "./auditManagement/auditStatus.js";
 import auditNc from "./auditManagement/auditNC.js";
 import auditReports from "./auditManagement/audit_report.js";
+import dashboardRouter from "./routes/dashborad/dashboard.js";
+import { startAllJobs } from "./jobs/index.js";
 
 dotenv.config();
 const app = express();
@@ -52,6 +54,9 @@ app.use("/master", master);
 app.use("/operationMaster", operationMaster);
 app.use("/inspection", inspection);
 app.use("/report", report);
+
+//dashboard
+app.use("/dashboard", dashboardRouter);
 
 // Audit Management
 app.use("/audit", audit);
@@ -175,3 +180,5 @@ app.post("/uploadlogo", upload.single("file"), async (req, res) => {
   }
 });
 
+// CronJob trigger
+startAllJobs()
