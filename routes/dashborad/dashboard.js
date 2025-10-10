@@ -264,10 +264,10 @@ const sentInspectionStatusMail = async () => {
                 SELECT * FROM mst_inspection_type
             `)
 
-            // if (response?.recordset?.length <= 0) {
-            //     console.log(`Checksheet length is empty : ${response?.recordset?.length}`)
-            //     return;
-            // }
+            if (response?.recordset?.length <= 0) {
+                console.log(`Checksheet length is empty : ${response?.recordset?.length}`)
+                return;
+            }
 
             // const inspectionColumnsIds = [4, 1, 2, 7]
             const inspectionColumnsIds = [1, 2, 3, 4, 5]

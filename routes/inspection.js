@@ -148,7 +148,8 @@ inspection.get("/getinspectiondetails", async (req, res) => {
     let trn_inspection_data = await pool.request()
       .query(`select check_point,min,max,special_char,insp_method,type,sample1,sample2,sample3,sample4,sample5,result1,result2,result3,result4,result5,final_result,Supervisor, Remarks, cr.created_on   from trn_checklist_result as cr
     join mst_checklist_items as ci on ci.checklist_item_id=cr.checklist_item_id
-    where trn_checklist=${id} order by trn_checklist`);
+    where trn_checklist=${id} order by seq_no`);
+    // order by trn_checklist);
     res.status(200).json({
       trn_details: trn_details.recordset[0],
       check_list_data: trn_inspection_data.recordset,

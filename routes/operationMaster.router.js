@@ -513,7 +513,7 @@ operationMaster.get("/checklistitem", async (req, res) => {
     const response = await pool
       .request()
       .query(
-        `select * from mst_checklist_items where del_status=0 and check_list_id=${id}`
+        `select * from mst_checklist_items where del_status=0 and check_list_id=${id} order by seq_no`
       );
     res.status(200).json(response.recordset);
   } catch (error) {
