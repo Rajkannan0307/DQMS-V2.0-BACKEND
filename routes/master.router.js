@@ -1124,6 +1124,19 @@ master.get("/genidvalidation", verifyJWT, async (req, res) => {
   }
 });
 
+master.get("/mst_employee_excel", verifyJWT, async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const response = await pool
+      .request()
+      .execute('GetAllEmployee');
+    return res.status(200).json({ success: true, data: response?.recordset || [] });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ success: false, data: "Internal server error" });
+  }
+})
+
 // employees ends here...
 
 
