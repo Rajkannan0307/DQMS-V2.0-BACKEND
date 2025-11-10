@@ -384,7 +384,7 @@ const sentInspectionStatusMail = async () => {
                 from: "noreplyrml@ranegroup.com",
                 to: toMail,
                 // to: ["a.chandran@ranegroup.com"],
-                cc: ["a.chandran@ranegroup.com"],
+                cc: ["a.chandran@ranegroup.com", "m.rajkumar@ranegroup.com"],
                 subject: `DQMS - Inspection Adherence Status`,
                 html: mailContentBody
             }
