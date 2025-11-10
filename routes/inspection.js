@@ -65,6 +65,13 @@ inspection.post("/saveInspection", async (req, res) => {
     table.create = true;
     table.columns.add("insp_id", sql.Int, { nullable: false });
     table.columns.add("checklist_item_id", sql.Int, { nullable: false });
+    table.columns.add("special_char_res", sql.VarChar(100));
+    table.columns.add("check_point_res", sql.VarChar(500));
+    table.columns.add("insp_method_res", sql.VarChar(250));
+    table.columns.add("min_res", sql.VarChar(10));
+    table.columns.add("max_res", sql.VarChar(10));
+    table.columns.add("type_res", sql.VarChar(10));
+
     table.columns.add("sample1", sql.VarChar(10));
     table.columns.add("result1", sql.VarChar(10));
     table.columns.add("sample2", sql.VarChar(10));
@@ -86,6 +93,13 @@ inspection.post("/saveInspection", async (req, res) => {
       table.rows.add(
         inserted_id,
         elemet.checklist_item_id,
+        elemet.special_char,
+        elemet.check_point,
+        elemet.insp_method,
+        elemet.min,
+        elemet.max,
+        elemet.type,
+
         elemet.sample1,
         elemet.result1,
         samples >= 3 ? elemet.sample2 : null,
@@ -107,11 +121,11 @@ inspection.post("/saveInspection", async (req, res) => {
     });
     console.log('table', table);
     console.log('rows', table.rows);
-
+    console.log('rows Length', table.rows.length);
 
     const insertData = await pool.request().bulk(table);
 
-    const updateData = await pool.request().query(`exec update_inspection_new_1`);
+    const updateData = await pool.request().query(`exec update_inspection_new`);
     console.log('update Data', updateData)
     res.status(201).json({ message: "success" });
   } catch (error) {
@@ -144,11 +158,53 @@ inspection.get("/getinspectiondetails", async (req, res) => {
     let trn_details = await pool
       .request()
       .query(`exec get_checklist_details ${id},'${type}'`);
+    console.log(trn_details.recordset.length)
 
+    // let trn_inspection_data = await pool.request()
+    //   .query(`select check_point,min,max,special_char,insp_method,type,sample1,sample2,sample3,sample4,sample5,result1,result2,result3,result4,result5,final_result,Supervisor, Remarks, cr.created_on   from trn_checklist_result as cr
+    // join mst_checklist_items as ci on ci.checklist_item_id=cr.checklist_item_id
+    // where trn_checklist=${id} order by seq_no`);
+    // // order by trn_checklist);
     let trn_inspection_data = await pool.request()
-      .query(`select check_point,min,max,special_char,insp_method,type,sample1,sample2,sample3,sample4,sample5,result1,result2,result3,result4,result5,final_result,Supervisor, Remarks, cr.created_on   from trn_checklist_result as cr
-    join mst_checklist_items as ci on ci.checklist_item_id=cr.checklist_item_id
-    where trn_checklist=${id} order by seq_no`);
+      .query(`
+        SELECT 
+          ci.seq_no,
+          ci.check_point,
+          ci.min,
+          ci.max,
+          ci.special_char,
+          ci.insp_method,
+          ci.type,
+
+          cr.special_char_res,
+          cr.check_point_res,
+          cr.min_res,
+          cr.max_res,
+          cr.insp_method_res,
+
+          cr.sample1,
+          cr.sample2,
+          cr.sample3,
+          cr.sample4,
+          cr.sample5,
+
+          cr.result1,
+          cr.result2,
+          cr.result3,
+          cr.result4,
+          cr.result5,
+
+          cr.final_result,
+          cr.Supervisor,
+          cr.Remarks,
+          cr.created_on
+
+        FROM trn_checklist_result AS cr
+        JOIN mst_checklist_items AS ci 
+            ON ci.checklist_item_id = cr.checklist_item_id
+        WHERE cr.trn_checklist = ${id}
+        ORDER BY ci.seq_no;
+     `);
     // order by trn_checklist);
     res.status(200).json({
       trn_details: trn_details.recordset[0],

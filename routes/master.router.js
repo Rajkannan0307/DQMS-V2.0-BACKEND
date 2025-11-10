@@ -1379,6 +1379,40 @@ master.get("/single_report", verifyJWT, async (req, res) => {
   }
 });
 
+master.get("/sample_report", verifyJWT, async (req, res) => {
+  console.log(req.query);
+
+  try {
+    const plant = req.query.plant;
+    const from = req.query.from;
+    const to = req.query.to;
+    const noOfSamples = req.query?.no_of_samples
+    const pool = await poolPromise;
+
+    let response;
+    
+    if (!noOfSamples || parseInt(noOfSamples) === 1) {
+      response = await pool.request()
+        .input('From', from)
+        .input('To', to)
+        .input('Plant', plant)
+        .execute('GetSingleSampleReport');
+    } else {
+      response = await pool.request()
+        .input('From', from)
+        .input('To', to)
+        .input('Plant', plant)
+        .input('NoOfSamples', noOfSamples)
+        .execute('GetSampleReport');
+    }
+
+    res.status(200).json(response.recordset);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json(error);
+  }
+});
+
 master.get("/checklist_details", verifyJWT, async (req, res) => {
   console.log(req.query);
 
