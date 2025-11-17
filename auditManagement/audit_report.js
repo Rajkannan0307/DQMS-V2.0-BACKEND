@@ -68,7 +68,7 @@ auditReports.post("/scheduler_report2", verifyJWT, async (req, res) => {
         const plant_id = body?.plant_id;
 
         const result = await pool.request()
-            .input('audit_type_id', audit_type_id)
+            // .input('audit_type_id', audit_type_id)
             .input('schedule_id', schedule_id)
             .input('year', year)
             .input('plant_id', plant_id)
