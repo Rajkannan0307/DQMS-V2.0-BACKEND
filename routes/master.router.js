@@ -613,9 +613,10 @@ master.get("/machine", verifyJWT, async (req, res) => {
                  join mst_department as d on d.dept_id=m.dept_id
                  join mst_plant as p on p.plant_id=m.plant_id
                  join mst_machine_type as mt on mt.machine_type_id= m.machine_type_id
-                 ${role_id == 1 ? "" : `where p.plant_id=${plant_id}`}
+                ${(role_id == 1 || role_id == 5) ? "" : `where p.plant_id=${plant_id}`}
                  order by del_status
-            `);
+                 `);
+    //  ${role_id == 1 ? "" : `where p.plant_id=${plant_id}`}
     res.status(200).json(response.recordset);
   } catch (error) {
     console.error(error);
@@ -1390,7 +1391,7 @@ master.get("/sample_report", verifyJWT, async (req, res) => {
     const pool = await poolPromise;
 
     let response;
-    
+
     if (!noOfSamples || parseInt(noOfSamples) === 1) {
       response = await pool.request()
         .input('From', from)

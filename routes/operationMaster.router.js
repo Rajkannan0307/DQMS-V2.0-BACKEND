@@ -79,9 +79,10 @@ operationMaster.get("/part", verifyJWT, async (req, res) => {
       .query(`select p.*,pl.plant_name,pg.product_name from mst_part as p
         join mst_product_group as pg on pg.product_id=p.product_id
         join mst_plant as pl on pl.plant_id=p.plant_id
-        ${role_id == 1 ? "" : `where p.plant_id=${plant_id}`}
+        ${(role_id == 1 || role_id == 5) ? "" : `where p.plant_id=${plant_id}`}
         order by del_status
         `);
+    // ${role_id == 1 ? "" : `where p.plant_id=${plant_id}`}
     res.status(200).json(response.recordset);
   } catch (error) {
     console.error(error);
@@ -295,8 +296,8 @@ operationMaster.get("/checklist", verifyJWT, async (req, res) => {
   try {
     let { plant_id, role_id } = req.query;
     let pool = await poolPromise;
-    let query = `exec checklist_master_data ${role_id == 1 ? "" : `${plant_id}`
-      }`;
+    // let query = `exec checklist_master_data ${role_id == 1 ? "" : `${plant_id}`}`;
+    let query = `exec checklist_master_data ${(role_id == 1 || role_id == 5) ? "" : `${plant_id}`}`;
     let response = await pool.request().query(query);
     console.log(response.recordset)
     res.status(200).json(response.recordset);
@@ -569,7 +570,7 @@ operationMaster.get("/checklistMapping", async (req, res) => {
         select checklist_mapping_id,c.plant_id,p.part_name,p.part_id,part_number,c.check_list_name,c.check_list_id from mst_checklist_mapping as m
           join mst_part as p on p.part_id=m.part_id
           join mst_check_list as c on c.check_list_id=m.checklist_id
-        where m.del_status=0 and c.del_status=0 and p.del_status=0 ${role_id == 1 ? "" : `and m.plant_id=${plant_id}`
+        where m.del_status=0 and c.del_status=0 and p.del_status=0 ${(role_id == 1 || role_id == 5) ? "" : `and m.plant_id=${plant_id}`
       }`);
     res.status(200).json(response.recordset);
   } catch (error) {
@@ -630,7 +631,7 @@ operationMaster.get("/partmapping", async (req, res) => {
     join mst_customer as c on c.customer_id = pm.customer_id
     join mst_customer_group as cg on cg.customer_group_id=c.customer_group_id
     join mst_company as cm on cm.company_id = pl.company_id
-    ${role_id == 1 ? "" : `where pl.plant_id=${plant_id}`}
+    ${(role_id == 1 || role_id == 5) ? "" : `where pl.plant_id=${plant_id}`}
     order by del_status`;
     console.log(query);
     const response = await pool.request().query(query);
