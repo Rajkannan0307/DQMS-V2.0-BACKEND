@@ -36,7 +36,8 @@ inspection.post("/saveInspection", async (req, res) => {
       heatCode,
       inspec,
       sup,
-      rem
+      rem,
+      shift
     } = req.body;
 
     const pool = await poolPromise;
@@ -51,7 +52,7 @@ inspection.post("/saveInspection", async (req, res) => {
       // check_list_id = id;
     }
     let query = `declare @pkey int
-    insert into trn_checklist(checklist_id,operator,type,reference,plant_id,heatcode,created_on,created_by) values('${check_list_id}','${operator}','${type}','${reference}','${plant_id}','${heatCode}',CURRENT_TIMESTAMP,'${user}')
+    insert into trn_checklist(checklist_id,operator,type,reference,plant_id,heatcode,created_on,created_by,shift) values('${check_list_id}','${operator}','${type}','${reference}','${plant_id}','${heatCode}',CURRENT_TIMESTAMP,'${user}','${shift}')
     SET @pkey = SCOPE_IDENTITY();
     select @pkey as pkey`;
     console.log('query', query);
@@ -82,6 +83,14 @@ inspection.post("/saveInspection", async (req, res) => {
     table.columns.add("result4", sql.VarChar(10));
     table.columns.add("sample5", sql.VarChar(10));
     table.columns.add("result5", sql.VarChar(10));
+
+    table.columns.add("sample6", sql.VarChar(10));
+    table.columns.add("result6", sql.VarChar(10));
+    table.columns.add("sample7", sql.VarChar(10));
+    table.columns.add("result7", sql.VarChar(10));
+    table.columns.add("sample8", sql.VarChar(10));
+    table.columns.add("result8", sql.VarChar(10));
+
     table.columns.add("final_result", sql.VarChar(10));
     table.columns.add("Checklist_Id", sql.Int,);
     table.columns.add("Part_Id", sql.Int,);
@@ -102,14 +111,22 @@ inspection.post("/saveInspection", async (req, res) => {
 
         elemet.sample1,
         elemet.result1,
-        samples >= 3 ? elemet.sample2 : null,
-        samples >= 3 ? elemet.result2 : null,
-        samples >= 3 ? elemet.sample3 : null,
-        samples >= 3 ? elemet.result3 : null,
-        samples == 5 ? elemet.sample4 : null,
-        samples == 5 ? elemet.result4 : null,
-        samples == 5 ? elemet.sample5 : null,
-        samples == 5 ? elemet.result5 : null,
+        elemet.sample2,
+        elemet.result2,
+        elemet.sample3,
+        elemet.result3,
+        elemet.sample4,
+        elemet.result4,
+        elemet.sample5,
+        elemet.result5,
+
+        elemet.sample6,
+        elemet.result6,
+        elemet.sample7,
+        elemet.result7,
+        elemet.sample8,
+        elemet.result8,
+
         elemet.final_result,
         check_list_id,
         part_id,
@@ -138,11 +155,11 @@ inspection.get("/getchecklists", async (req, res) => {
   try {
     console.log('getchecklistsby date:', req.query);
 
-    let { from, to, type, inspection_id, plant_id } = req.query;
-    let pool = await poolPromise;
-    let query = `exec get_checklists '${type}','${from}','${to}','${inspection_id}','${plant_id}'`;
+    const { from, to, type, inspection_id, plant_id, partNumber } = req.query;
+    const pool = await poolPromise;
+    const query = `exec get_checklists '${type}','${from}','${to}','${inspection_id}','${plant_id}','${partNumber}'`;
     console.log(query);
-    let response = await pool.request().query(query);
+    const response = await pool.request().query(query);
     res.status(200).json(response.recordset);
   } catch (error) {
     console.log(error);
@@ -765,5 +782,63 @@ inspection.post("/nc_reassign", verifyJWT, async (req, res) => {
     return res.status(500).json({ success: false, data: 'Internal server error' })
   }
 })
+
+
+inspection.get("/GetPartInspTrnChklst", async (req, res) => {
+  try {
+    console.log('GetPartInspTrnChklst date:', req.query);
+    const { inspectionId, plantId, fromDate, toDate } = req.query;
+    const pool = await poolPromise;
+    console.log(req.query)
+    const response = await pool.request()
+      .input('inspectionId', inspectionId)
+      .input('plantId', plantId)
+      .input('fromDate', fromDate)
+      .input('toDate', toDate)
+      .execute('GetPartInspTrnChklst');
+    return res.status(200).json(response.recordset);
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json(error);
+  }
+});
+
+inspection.get("/GetPartInspTrnChklstDate", async (req, res) => {
+  try {
+    console.log('GetPartInspTrnChklst date:', req.query);
+    const { inspectionId, plantId, insp_date } = req.query;
+    const pool = await poolPromise;
+    console.log(req.query)
+    const response = await pool.request()
+      .input('inspectionId', inspectionId)
+      .input('plantId', plantId)
+      .input('insp_date', insp_date)
+      .execute('GetPartInspTrnChklstDate');
+    return res.status(200).json(response.recordset);
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json(error);
+  }
+});
+
+
+inspection.get("/NC_Report_Summary", async (req, res) => {
+  try {
+    console.log('GetPartInspTrnChklst date:', req.query);
+    const { plant, insp_date, partId } = req.query;
+    const pool = await poolPromise;
+    console.log(req.query)
+    const response = await pool.request()
+      .input('plant', plant)
+      .input('insp_date', insp_date)
+      .input('part_id', partId)
+      .execute('NC_Report_Summary');
+    return res.status(200).json(response.recordset);
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json(error);
+  }
+});
+
 
 export default inspection;

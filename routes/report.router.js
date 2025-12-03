@@ -150,4 +150,24 @@ report.get('/Get_Chart', verifyJWT, async (req, res) => {
 });
 
 
+report.get('/GetPatrolSummary', verifyJWT, async (req, res) => {
+    console.log('GetPatrolSummary Querys', req.query);
+    try {
+        const { plant, insp_date, partId } = req.query;
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('plant', plant)
+            .input('insp_date', insp_date)
+            .input('partId', partId)
+            .execute('GetPatrolSummary')
+
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        console.error(error);
+        res.status(400).json(error);
+    }
+});
+
+
+
 export default report;

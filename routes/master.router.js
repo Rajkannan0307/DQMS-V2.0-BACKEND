@@ -1392,20 +1392,20 @@ master.get("/sample_report", verifyJWT, async (req, res) => {
 
     let response;
 
-    if (!noOfSamples || parseInt(noOfSamples) === 1) {
-      response = await pool.request()
-        .input('From', from)
-        .input('To', to)
-        .input('Plant', plant)
-        .execute('GetSingleSampleReport');
-    } else {
-      response = await pool.request()
-        .input('From', from)
-        .input('To', to)
-        .input('Plant', plant)
-        .input('NoOfSamples', noOfSamples)
-        .execute('GetSampleReport');
-    }
+    // if (!noOfSamples || parseInt(noOfSamples) === 1) {
+    //   response = await pool.request()
+    //     .input('From', from)
+    //     .input('To', to)
+    //     .input('Plant', plant)
+    //     .execute('GetSingleSampleReport');
+    // } else {
+    response = await pool.request()
+      .input('From', from)
+      .input('To', to)
+      .input('Plant', plant)
+      .input('NoOfSamples', noOfSamples)
+      .execute('GetSampleReport');
+    // }
 
     res.status(200).json(response.recordset);
   } catch (error) {
