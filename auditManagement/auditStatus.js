@@ -210,8 +210,77 @@ auditStatus.get("/view-results", verifyJWT, async (req, res) => {
         return res.status(500).json({ success: false, data: 'Internal server error' });
     }
 })
-
 auditStatus.post('/save_audit_result', verifyJWT, async (req, res) => {
+    try {
+        const body = req.body;
+        // console.log(body)
+        const userId = req.user;
+        const auditResult = body?.auditResult;
+        const schedule_id = body?.schedule_id;
+        const schedule_detail_id = body?.schedule_detail_id;
+        const plant_id = body?.plant_id;
+        const dept_id = body?.dept_id;
+        const audit_type_id = body?.audit_type_id;
+        const audit_scope = body?.audit_scope;
+        const shift = body?.shift;
+        const audit_plan_date = body?.audit_plan_date;
+        const dept_name = body?.dept_name;
+        const audit_name = body?.audit_name;
+        const auditees = body?.auditees;
+        const auditors = body?.auditors;
+
+        const nc_auditee = body?.nc_auditee;
+        const comments = body?.comments;
+
+        const pool = await poolPromise;
+
+        //Based on the schedule detail id and checkpoint id it will update
+        for (let data of auditResult) {
+            await pool.request()
+                .input('schedule_id', schedule_id)
+                .input('schedule_details_id', schedule_detail_id)
+                .input('plant_id', plant_id)
+                .input('dept_id', dept_id)
+                .input('audit_type_id', audit_type_id)
+                .input('audit_scope', audit_scope)
+                .input('shift', shift)
+                .input('audit_plan_date', audit_plan_date)
+                .input('checksheet_id', data?.Audit_Checksheet_Id)
+                .input('checkpoint_id', data?.Audit_Checkpoint_Id)
+                .input('ratings', data?.ratings)
+                .input('observation_remarks', data?.observation_remarks)
+                .input('audited_by', userId)
+                .input('modify_by', userId)
+                .input('nc_assigned_to', nc_auditee)
+                .execute('trn_audit_result_UPSERT')
+        }
+
+        // Updating the nc_auditee
+        await pool.request()
+            .input('schedule_details_id', schedule_detail_id)
+            .input('nc_auditee', nc_auditee)
+            .query(`
+                    UPDATE ${TableName.Trn_audit_schedule_details}
+                    SET
+                    nc_auditee = @nc_auditee
+                    WHERE schedule_detail_id = @schedule_details_id
+                `)
+
+        // Updating auditor comments 
+        await pool.request()
+            .input('schedule_detail_id', schedule_detail_id)
+            .input('comments', comments)
+            .execute('trn_auditor_comments_UPSERT')
+
+        return res.status(200).json({ success: true, data: 'Success' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, data: 'Internal server error' });
+    }
+
+})
+
+auditStatus.post('/submit_audit_result', verifyJWT, async (req, res) => {
     try {
         const body = req.body;
         // console.log(body)

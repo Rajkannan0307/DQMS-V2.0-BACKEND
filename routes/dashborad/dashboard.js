@@ -44,6 +44,12 @@ dashboardRouter.post("/getDashboardData", verifyJWT, async (req, res) => {
                     nc_ad_month: nc_ad_result?.recordsets[1],
                     nc_ad_plant: nc_ad_result?.recordsets[2],
                 },
+                // NC Open Close Data
+                nc_ad_oc: {
+                    nc_ad_all: nc_ad_result?.recordsets[3],
+                    nc_ad_month: nc_ad_result?.recordsets[4],
+                    nc_ad_plant: nc_ad_result?.recordsets[5],
+                }
             }
         })
     } catch (error) {
@@ -315,6 +321,22 @@ const sentInspectionStatusMail = async () => {
                 return { bg: '#E5E7EB', color: '#1F2937' };             // Gray: not executed
             };
 
+
+            //  <div style="display:flex; gap:20px; font-family: Arial; margin-bottom:20px; font-size:10px">
+            //     <div style="display:flex; align-items:center; gap:5px;">
+            //         <div style="width:15px; height:15px; background:#10B981; border:1px solid #000;"></div>
+            //         <span>Executed and OK</span>
+            //     </div>
+            //     <div style="display:flex; align-items:center; gap:5px;">
+            //         <div style="width:15px; height:15px; background:#EF4444; border:1px solid #000;"></div>
+            //         <span>Executed but NG observed</span>
+            //     </div>
+            //     <div style="display:flex; align-items:center; gap:5px;">
+            //         <div style="width:15px; height:15px; background:#E5E7EB; border:1px solid #000;"></div>
+            //         <span>Not Executed</span>
+            //     </div>
+            // </div>
+
             // Generate HTML
             const mailContentBody = `
             Dear User, <br>
@@ -322,20 +344,20 @@ const sentInspectionStatusMail = async () => {
             <p>Here attaching the line wise DQMS Inspection adherence status</p>
             <p>Please take necessary action to complains 100%</p>
 
-            <div style="display:flex; gap:20px; font-family: Arial; margin-bottom:20px; font-size:10px">
-                <div style="display:flex; align-items:center; gap:5px;">
+              <div style="display:flex; font-family: Arial; margin-bottom:20px; font-size:10px">
+                <div style="display:flex; align-items:center; margin-left:0px;">
                     <div style="width:15px; height:15px; background:#10B981; border:1px solid #000;"></div>
-                    <span>Executed and OK</span>
+                    <span style="margin-left:5px;">Executed and OK</span>
                 </div>
-                <div style="display:flex; align-items:center; gap:5px;">
+                <div style="display:flex; align-items:center; margin-left:15px;">
                     <div style="width:15px; height:15px; background:#EF4444; border:1px solid #000;"></div>
-                    <span>Executed but NG observed</span>
+                    <span style="margin-left:5px;">Executed but NG observed</span>
                 </div>
-                <div style="display:flex; align-items:center; gap:5px;">
+                <div style="display:flex; align-items:center; margin-left:15px;">
                     <div style="width:15px; height:15px; background:#E5E7EB; border:1px solid #000;"></div>
-                    <span>Not Executed</span>
+                    <span style="margin-left:5px;">Not Executed</span>
                 </div>
-            </div>
+             </div>
 
              <table style="border-collapse: collapse; width: 100%; font-family: Arial;">
                 <thead>

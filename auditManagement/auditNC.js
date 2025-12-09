@@ -27,6 +27,7 @@ const auditNc = Router();
 auditNc.get("/get", verifyJWT, async (req, res) => {
     try {
         const userId = req.user;
+        console.log(userId, 'UserId')
         const status = req.query.status
         const is_auditor = req.query.isAuditor
         console.log(status)
