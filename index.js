@@ -70,6 +70,9 @@ const __dirname = dirname(__filename);
 app.use('/auditManagement/uploads', express.static(path.join(__dirname, 'auditManagement/uploads')));
 app.use('/auditManagement/template', express.static(path.join(__dirname, 'auditManagement/template')))
 
+// Uploading
+app.use('/inspection/uploads', express.static(path.join(__dirname, 'routes/uploads')))
+
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

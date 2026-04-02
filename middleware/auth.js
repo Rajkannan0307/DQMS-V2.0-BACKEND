@@ -1,8 +1,8 @@
-import jwt from'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 
 function verifyJWT(req, res, next) {
   const token_data = req.headers.authorization;
-  
+
   if (!token_data) {
     console.log('No token provided');
     return res.status(401).json({ message: 'No token provided' });

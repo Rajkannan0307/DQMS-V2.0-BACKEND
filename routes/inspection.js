@@ -3,6 +3,51 @@ import poolPromise, { sql } from "../db.js";
 import nodemailer from "nodemailer";
 import verifyJWT from "../middleware/auth.js";
 
+import multer from 'multer';
+import * as path from "path";
+import { fileURLToPath } from "url";
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+//---fileupload_location
+const uploadPath = path.join(__dirname, 'uploads');
+
+
+// Ensure directory exists
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
+}
+
+// Storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'uploads'))
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const extension = path.extname(file.originalname);
+    const uniqueFileName = file.fieldname + "-" + uniqueSuffix + extension;
+    cb(null, uniqueFileName);
+  }
+});
+
+// Uploading storage and validation option
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 1 * 1024 * 1024 }, // Limit file size to 1 MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('LIMIT_FILE_TYPES'), false);
+    }
+  }
+});
+
+
 let inspection = Router();
 
 let mailconfig = nodemailer.createTransport({
@@ -19,49 +64,203 @@ let mailconfig = nodemailer.createTransport({
   },
 });
 
-inspection.post("/saveInspection", async (req, res) => {
+// inspection.post("/saveInspection", upload.single('file'), async (req, res) => {
+//   try {
+
+//     const file = req?.file
+//     const fileName = file?.filename || ""
+
+//     console.log('part req body:', req.body);
+
+//     let {
+//       inspection_data,
+//       type,
+//       operator,
+//       check_list_id,
+//       reference,
+//       user,
+//       plant_id,
+//       samples,
+//       part_id,
+//       heatCode,
+//       inspec,
+//       sup,
+//       rem,
+//       shift,
+//       prod_ord,
+//       assigned_user_id
+//     } = req.body;
+
+//     const pool = await poolPromise;
+//     if (type == "part") {
+//       let resp = await pool
+//         .request()
+//         .query(
+//           `select checklist_mapping_id from mst_checklist_mapping where part_id=${part_id} and checklist_id=${check_list_id}`
+//         );
+//       console.log('resp', resp);
+//       let id = resp.recordset[0].checklist_mapping_id;
+//       // check_list_id = id;
+//     }
+//     let query = `declare @pkey int
+//     insert into trn_checklist(checklist_id,operator,type,reference,plant_id,heatcode,created_on,created_by,shift, prod_ord, file_name) values('${check_list_id}','${operator}','${type}','${reference}','${plant_id}','${heatCode}',CURRENT_TIMESTAMP,'${user}','${shift}', '${prod_ord}', '${fileName}')
+//     SET @pkey = SCOPE_IDENTITY();
+//     select @pkey as pkey`;
+//     console.log('query', query);
+//     const response = await pool.request().query(query);
+//     let inserted_id;
+//     if (response.rowsAffected[0] == 1) {
+//       inserted_id = response.recordset[0].pkey;
+//       console.log(inserted_id);
+//     }
+//     const table = new sql.Table("#tempdata");
+//     table.create = true;
+//     table.columns.add("insp_id", sql.Int, { nullable: false });
+//     table.columns.add("checklist_item_id", sql.Int, { nullable: false });
+//     table.columns.add("special_char_res", sql.VarChar(100));
+//     table.columns.add("check_point_res", sql.VarChar(500));
+//     table.columns.add("insp_method_res", sql.VarChar(250));
+//     table.columns.add("min_res", sql.VarChar(10));
+//     table.columns.add("max_res", sql.VarChar(10));
+//     table.columns.add("type_res", sql.VarChar(10));
+
+//     table.columns.add("sample1", sql.VarChar(10));
+//     table.columns.add("result1", sql.VarChar(10));
+//     table.columns.add("sample2", sql.VarChar(10));
+//     table.columns.add("result2", sql.VarChar(10));
+//     table.columns.add("sample3", sql.VarChar(10));
+//     table.columns.add("result3", sql.VarChar(10));
+//     table.columns.add("sample4", sql.VarChar(10));
+//     table.columns.add("result4", sql.VarChar(10));
+//     table.columns.add("sample5", sql.VarChar(10));
+//     table.columns.add("result5", sql.VarChar(10));
+
+//     table.columns.add("sample6", sql.VarChar(10));
+//     table.columns.add("result6", sql.VarChar(10));
+//     table.columns.add("sample7", sql.VarChar(10));
+//     table.columns.add("result7", sql.VarChar(10));
+//     table.columns.add("sample8", sql.VarChar(10));
+//     table.columns.add("result8", sql.VarChar(10));
+
+//     table.columns.add("final_result", sql.VarChar(10));
+//     table.columns.add("Checklist_Id", sql.Int,);
+//     table.columns.add("Part_Id", sql.Int,);
+//     table.columns.add("Inspection_Id", sql.Int,);
+//     table.columns.add("Machine_Id", sql.Int,);
+//     table.columns.add("Supervisor", sql.VarChar(100));
+//     table.columns.add("emp_id", sql.Int); //assigned_user_id
+//     table.columns.add("Remarks", sql.VarChar(500));
+//     JSON.parse(inspection_data).map((elemet) => {
+//       table.rows.add(
+//         inserted_id,
+//         elemet.checklist_item_id,
+//         elemet.special_char,
+//         elemet.check_point,
+//         elemet.insp_method,
+//         elemet.min,
+//         elemet.max,
+//         elemet.type,
+
+//         elemet.sample1,
+//         elemet.result1,
+//         elemet.sample2,
+//         elemet.result2,
+//         elemet.sample3,
+//         elemet.result3,
+//         elemet.sample4,
+//         elemet.result4,
+//         elemet.sample5,
+//         elemet.result5,
+
+//         elemet.sample6,
+//         elemet.result6,
+//         elemet.sample7,
+//         elemet.result7,
+//         elemet.sample8,
+//         elemet.result8,
+
+//         elemet.final_result,
+//         check_list_id,
+//         part_id,
+//         inspec,
+//         reference,
+//         sup,
+//         assigned_user_id,
+//         rem
+//       );
+//     });
+//     console.log('table', table);
+//     console.log('rows', table.rows);
+//     console.log('rows Length', table.rows.length);
+
+//     const insertData = await pool.request().bulk(table);
+
+//     const updateData = await pool.request().query(`exec update_inspection_new`);
+//     console.log('update Data', updateData)
+//     res.status(201).json({ message: "success" });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(400).json(error);
+//   }
+// });
+
+
+inspection.post("/saveInspection", upload.single('file'), async (req, res) => {
+  const pool = await poolPromise;
+  // Create a new transaction instance
+  const transaction = new sql.Transaction(pool);
+
   try {
-    console.log('part req body:', req.body);
+    const file = req?.file;
+    const fileName = file?.filename || "";
 
     let {
-      inspection_data,
-      type,
-      operator,
-      check_list_id,
-      reference,
-      user,
-      plant_id,
-      samples,
-      part_id,
-      heatCode,
-      inspec,
-      sup,
-      rem,
-      shift
+      inspection_data, type, operator, check_list_id, reference,
+      user, plant_id, samples, part_id, heatCode, inspec,
+      sup, rem, shift, prod_ord, assigned_user_id
     } = req.body;
 
-    const pool = await poolPromise;
-    if (type == "part") {
-      let resp = await pool
-        .request()
-        .query(
-          `select checklist_mapping_id from mst_checklist_mapping where part_id=${part_id} and checklist_id=${check_list_id}`
-        );
-      console.log('resp', resp);
-      let id = resp.recordset[0].checklist_mapping_id;
-      // check_list_id = id;
-    }
-    let query = `declare @pkey int
-    insert into trn_checklist(checklist_id,operator,type,reference,plant_id,heatcode,created_on,created_by,shift) values('${check_list_id}','${operator}','${type}','${reference}','${plant_id}','${heatCode}',CURRENT_TIMESTAMP,'${user}','${shift}')
-    SET @pkey = SCOPE_IDENTITY();
-    select @pkey as pkey`;
-    console.log('query', query);
-    const response = await pool.request().query(query);
-    let inserted_id;
-    if (response.rowsAffected[0] == 1) {
-      inserted_id = response.recordset[0].pkey;
-      console.log(inserted_id);
-    }
+    // 1. Start the Transaction
+    await transaction.begin();
+
+    // Use the transaction for all requests
+    const request = new sql.Request(transaction);
+
+    // if (type == "part") {
+    //   let resp = await request
+    //     .input('part_id', sql.Int, part_id)
+    //     .input('cl_id', sql.Int, check_list_id)
+    //     .query(`select checklist_mapping_id from mst_checklist_mapping where part_id=@part_id and checklist_id=@cl_id`);
+
+    //   // If needed, you could update check_list_id here: 
+    //   // if(resp.recordset.length > 0) check_list_id = resp.recordset[0].checklist_mapping_id;
+    // }
+
+    // 2. Insert Header Record
+    let headerQuery = `
+            declare @pkey int;
+            insert into trn_checklist(checklist_id, operator, type, reference, plant_id, heatcode, created_on, created_by, shift, prod_ord, file_name) 
+            values(@cl_id, @op, @tp, @ref, @plid, @hc, CURRENT_TIMESTAMP, @usr, @shft, @po, @fname);
+            SET @pkey = SCOPE_IDENTITY();
+            select @pkey as pkey;
+        `;
+
+    const headerResponse = await request
+      .input('cl_id', sql.Int, check_list_id)
+      .input('op', sql.VarChar, operator)
+      .input('tp', sql.VarChar, type)
+      .input('ref', sql.VarChar, reference)
+      .input('plid', sql.Int, plant_id)
+      .input('hc', sql.VarChar, heatCode)
+      .input('usr', sql.VarChar, user)
+      .input('shft', sql.VarChar, shift)
+      .input('po', sql.VarChar, prod_ord)
+      .input('fname', sql.VarChar, fileName)
+      .query(headerQuery);
+
+    const inserted_id = headerResponse.recordset[0].pkey;
+
+    // 3. Prepare Bulk Insert Table
     const table = new sql.Table("#tempdata");
     table.create = true;
     table.columns.add("insp_id", sql.Int, { nullable: false });
@@ -72,84 +271,111 @@ inspection.post("/saveInspection", async (req, res) => {
     table.columns.add("min_res", sql.VarChar(10));
     table.columns.add("max_res", sql.VarChar(10));
     table.columns.add("type_res", sql.VarChar(10));
-
-    table.columns.add("sample1", sql.VarChar(10));
-    table.columns.add("result1", sql.VarChar(10));
-    table.columns.add("sample2", sql.VarChar(10));
-    table.columns.add("result2", sql.VarChar(10));
-    table.columns.add("sample3", sql.VarChar(10));
-    table.columns.add("result3", sql.VarChar(10));
-    table.columns.add("sample4", sql.VarChar(10));
-    table.columns.add("result4", sql.VarChar(10));
-    table.columns.add("sample5", sql.VarChar(10));
-    table.columns.add("result5", sql.VarChar(10));
-
-    table.columns.add("sample6", sql.VarChar(10));
-    table.columns.add("result6", sql.VarChar(10));
-    table.columns.add("sample7", sql.VarChar(10));
-    table.columns.add("result7", sql.VarChar(10));
-    table.columns.add("sample8", sql.VarChar(10));
-    table.columns.add("result8", sql.VarChar(10));
-
+    // Samples 1-8...
+    for (let i = 1; i <= 8; i++) {
+      table.columns.add(`sample${i}`, sql.VarChar(10));
+      table.columns.add(`result${i}`, sql.VarChar(10));
+    }
     table.columns.add("final_result", sql.VarChar(10));
-    table.columns.add("Checklist_Id", sql.Int,);
-    table.columns.add("Part_Id", sql.Int,);
-    table.columns.add("Inspection_Id", sql.Int,);
-    table.columns.add("Machine_Id", sql.Int,);
+    table.columns.add("Checklist_Id", sql.Int);
+    table.columns.add("Part_Id", sql.Int);
+    table.columns.add("Inspection_Id", sql.Int);
+    table.columns.add("Machine_Id", sql.Int);
     table.columns.add("Supervisor", sql.VarChar(100));
+    table.columns.add("emp_id", sql.Int);
     table.columns.add("Remarks", sql.VarChar(500));
-    inspection_data.map((elemet) => {
+
+    JSON.parse(inspection_data).forEach((element) => {
       table.rows.add(
-        inserted_id,
-        elemet.checklist_item_id,
-        elemet.special_char,
-        elemet.check_point,
-        elemet.insp_method,
-        elemet.min,
-        elemet.max,
-        elemet.type,
-
-        elemet.sample1,
-        elemet.result1,
-        elemet.sample2,
-        elemet.result2,
-        elemet.sample3,
-        elemet.result3,
-        elemet.sample4,
-        elemet.result4,
-        elemet.sample5,
-        elemet.result5,
-
-        elemet.sample6,
-        elemet.result6,
-        elemet.sample7,
-        elemet.result7,
-        elemet.sample8,
-        elemet.result8,
-
-        elemet.final_result,
-        check_list_id,
-        part_id,
-        inspec,
-        reference,
-        sup,
-        rem
+        inserted_id, element.checklist_item_id, element.special_char, element.check_point,
+        element.insp_method, element.min, element.max, element.type,
+        element.sample1, element.result1, element.sample2, element.result2,
+        element.sample3, element.result3, element.sample4, element.result4,
+        element.sample5, element.result5, element.sample6, element.result6,
+        element.sample7, element.result7, element.sample8, element.result8,
+        element.final_result, check_list_id, part_id, inspec, reference, sup, assigned_user_id, rem
       );
     });
-    console.log('table', table);
-    console.log('rows', table.rows);
-    console.log('rows Length', table.rows.length);
 
-    const insertData = await pool.request().bulk(table);
+    // 4. Bulk Insert and SP Execution
+    await request.bulk(table);
+    await request.query(`exec update_inspection_new`);
 
-    const updateData = await pool.request().query(`exec update_inspection_new`);
-    console.log('update Data', updateData)
-    res.status(201).json({ message: "success" });
+    // 5. Commit Transaction
+    await transaction.commit();
+
+    // 6. If any NC Exsit then trigger the mail for that User
+    const hasNC = JSON.parse(inspection_data).some(item => String(item.final_result).toLowerCase() === 'fail');
+
+    if (hasNC) {
+      console.log("Got NC Trigger Mail")
+      sendInspectionMail(inserted_id, assigned_user_id, pool);
+    }
+
+    // // 6. Trigger Mail ONLY after successful commit
+    // sendInspectionMail(inserted_id, assigned_user_id, pool);
+
+    res.status(201).json({ message: "success", id: inserted_id });
+
   } catch (error) {
-    console.log(error);
-    res.status(400).json(error);
+    // Rollback if any step fails
+    if (transaction) await transaction.rollback();
+    console.error("Transaction Error:", error);
+    res.status(400).json({ error: "Failed to save inspection", details: error.message });
   }
 });
+
+// Helper Function for Email logic
+async function sendInspectionMail(header_id, emp_id, pool) {
+  try {
+    // Fetch details for the email
+    // Note: Using the header_id (inserted_id) to find results
+    let checklist_data = await pool.request()
+      .input('hid', sql.Int, header_id)
+      .query(`
+                select TOP 1 ce.emp_name as creadted_by, format(tc.created_on,'dd-MM-yyyy','en-US') as created_on, 
+                ce.email as created_by_email, mcl.check_list_name 
+                from trn_checklist as tc
+                join mst_check_list as mcl on mcl.check_list_id = tc.checklist_id
+                join mst_employees as ce on ce.gen_id = tc.created_by
+                where tc.trn_checklist_id = @hid
+            `);
+
+    if (checklist_data.recordset.length === 0) return;
+
+    let { creadted_by, created_on, created_by_email, check_list_name } = checklist_data.recordset[0];
+
+    let reciver_details = await pool.request()
+      .input('eid', sql.Int, emp_id)
+      .query(`select email, emp_name from mst_employees where emp_id = @eid`);
+
+    if (reciver_details.recordset.length > 0) {
+      let { email, emp_name } = reciver_details.recordset[0];
+      let mailtext = `The below NC is generated from ${check_list_name} on ${created_on} by ${creadted_by}`;
+
+      const mailOptions = {
+        from: "noreplyrml@ranegroup.com",
+        to: email,
+        cc: ["g.kumar@ranegroup.com", created_by_email],
+        subject: "DQMS-Inspection-NC-Action Request",
+        html: `
+                    <p>Dear ${emp_name},</p>
+                    <p style="margin-left:50px">${mailtext}</p>
+                    <p style="margin-left:50px">Kindly Login into DQMS and take required action.</p>
+                    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                        <p>Thanks & Regards,<br />Auto Mail Notification From DQMS</p>
+                    </div>`
+      };
+
+      mailconfig.sendMail(mailOptions, (err, info) => {
+        if (err) console.log('Error Sending Mail', err);
+        else console.log("Email sent: " + info.response);
+      });
+    }
+  } catch (err) {
+    console.error("Email Logic Error:", err);
+  }
+}
 
 inspection.get("/getchecklists", async (req, res) => {
   try {
