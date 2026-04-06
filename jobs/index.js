@@ -8,6 +8,6 @@ const jobs = [
 ];
 
 export const startAllJobs = () => {
-    jobs.forEach(job => job.start());
+    // jobs.forEach(job => job.start());
     console.log("✅ All cron jobs started...");
 };
