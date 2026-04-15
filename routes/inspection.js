@@ -548,7 +548,7 @@ inspection.get("/assigned", async (req, res) => {
       join trn_checklist as tc on tc.trn_checklist_id=tcr.trn_checklist
       join mst_checklist_items as mci on mci.checklist_item_id=tcr.checklist_item_id
       join mst_check_list as mc on mc.check_list_id=tc.checklist_id
-      where emp_id=${id} and (status is null or status='rejected')
+      where tnc.emp_id=${id} and (status is null or status='rejected')
       order by tnc.created_on desc
       `);
     res.status(200).json(response.recordset);
@@ -568,7 +568,7 @@ inspection.get("/pending", async (req, res) => {
       join trn_checklist as tc on tc.trn_checklist_id=tcr.trn_checklist
       join mst_checklist_items as mci on mci.checklist_item_id=tcr.checklist_item_id
       join mst_check_list as mc on mc.check_list_id=tc.checklist_id
-      where emp_id=${id} and  status='pending'
+      where tnc.emp_id=${id} and  status='pending'
       order by tnc.created_on desc
       `);
     res.status(200).json(response.recordset);
@@ -588,7 +588,7 @@ inspection.get("/submittednc", async (req, res) => {
       join trn_checklist as tc on tc.trn_checklist_id=tcr.trn_checklist
       join mst_checklist_items as mci on mci.checklist_item_id=tcr.checklist_item_id
       join mst_check_list as mc on mc.check_list_id=tc.checklist_id
-      where emp_id=${id} and  status='submitted'
+      where tnc.emp_id=${id} and  status='submitted'
       order by tnc.created_on desc
       
       `);
@@ -609,7 +609,7 @@ inspection.get("/closednc", async (req, res) => {
       join trn_checklist as tc on tc.trn_checklist_id=tcr.trn_checklist
       join mst_checklist_items as mci on mci.checklist_item_id=tcr.checklist_item_id
       join mst_check_list as mc on mc.check_list_id=tc.checklist_id
-      where emp_id=${id} and  status='closed'
+      where tnc.emp_id=${id} and  status='closed'
       order by tnc.created_on desc
       
       `);

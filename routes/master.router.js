@@ -1014,7 +1014,7 @@ master.get("/employeeslistbydept", verifyJWT, async (req, res) => {
     const pool = await poolPromise;
     const response = await pool.request()
       .query(`select emp_id,gen_id,emp_name from  mst_employees as e
-      where dept_id=${dept_id}`);
+      where dept_id=${dept_id} and del_status=0`);
     res.status(200).json(response.recordset);
   } catch (error) {
     console.error(error);
