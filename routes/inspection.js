@@ -220,6 +220,22 @@ inspection.post("/saveInspection", upload.single('file'), async (req, res) => {
       sup, rem, shift, prod_ord, assigned_user_id
     } = req.body;
 
+    console.log('type', type)
+    console.log('operator', operator)
+    console.log('check_list_id', check_list_id)
+    console.log('reference', reference)
+    console.log('user', user)
+    console.log('plant_id', plant_id)
+    console.log('samples', samples)
+    console.log('part_id', part_id)
+    console.log('heatCode', heatCode)
+    console.log('inspec', inspec)
+    console.log('sup', sup)
+    console.log('rem', rem)
+    console.log('shift', shift)
+    console.log('prod_ord', prod_ord)
+    console.log('assigned_user_id', assigned_user_id)
+
     // 1. Start the Transaction
     await transaction.begin();
 
@@ -285,6 +301,12 @@ inspection.post("/saveInspection", upload.single('file'), async (req, res) => {
     table.columns.add("emp_id", sql.Int);
     table.columns.add("Remarks", sql.VarChar(500));
 
+    // 1. Create a helper function to safely parse Integers or return null
+    const safeInt = (val) => {
+      if (val === "" || val === null || val === undefined || isNaN(val)) return null;
+      return parseInt(val, 10);
+    };
+
     JSON.parse(inspection_data).forEach((element) => {
       table.rows.add(
         inserted_id, element.checklist_item_id, element.special_char, element.check_point,
@@ -293,9 +315,12 @@ inspection.post("/saveInspection", upload.single('file'), async (req, res) => {
         element.sample3, element.result3, element.sample4, element.result4,
         element.sample5, element.result5, element.sample6, element.result6,
         element.sample7, element.result7, element.sample8, element.result8,
-        element.final_result, check_list_id, part_id, inspec, reference, sup, assigned_user_id, rem
+        element.final_result, safeInt(check_list_id), safeInt(part_id), safeInt(inspec), reference, sup, assigned_user_id, rem
       );
     });
+
+
+    console.log('table', table.rows.map((row) => row));
 
     // 4. Bulk Insert and SP Execution
     await request.bulk(table);
