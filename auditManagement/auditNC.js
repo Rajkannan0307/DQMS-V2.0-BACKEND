@@ -4,6 +4,7 @@ import poolPromise from "../db.js";
 import { AduitConstant, NcActionType, TableName, trnAuditNcStatus, trnParticipantRoleEnum } from "./utils/utils.js";
 import generateTemplate from "./mailTemplate/generateTemplate.js";
 import nodemailer from "nodemailer";
+import { mailTriggerFrom } from "../utils/mailConfig.js";
 
 
 let mailconfig = nodemailer.createTransport({
@@ -12,7 +13,8 @@ let mailconfig = nodemailer.createTransport({
     port: 25,
     secure: false,
     auth: {
-        user: "noreplyrml@ranegroup.com",
+        // user: "noreplyrml@ranegroup.com",
+        user: mailTriggerFrom,
         pass: "",
     },
     tls: {
@@ -386,7 +388,287 @@ auditNc.post("/edit_action", verifyJWT, async (req, res) => {
         if (check.find((e) => actionType === e)) {
             // console.log(scheduleHeader)
             const mailPayload = {
-                from: "noreplyrml@ranegroup.com",
+                from: mailTriggerFrom,
+                to: toMailList,
+                cc: ccMailList,
+                subject: mailSub,
+                html: htmlData
+            }
+
+            console.log("mailPayload", mailPayload)
+
+            mailconfig.sendMail(mailPayload, function (error, info) {
+                if (error) {
+                    console.log('Error Sending Mail', error);
+                } else {
+                    console.log("Email sent: " + info.response);
+                }
+            })
+        }
+
+        return res.status(200).json({ success: true, data: "Success" });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, data: 'Internal server error' });
+    }
+})
+
+
+//==================================================================
+//================= AUDIT EFFECTIVE MONITORING =====================
+//==================================================================
+
+auditNc.get("/get_eff_monitoring", verifyJWT, async (req, res) => {
+    try {
+        const userId = req.user;
+        const status = req.query.status
+        const is_auditor = req.query.isAuditor
+        console.log(userId, 'UserId  ', 'Is Auditor', is_auditor)
+        console.log(status)
+        const statusMap = {
+            OPEN: [trnAuditNcStatus.OPEN, trnAuditNcStatus.QUERY],
+            CLOSED: [trnAuditNcStatus.APPROVED],
+        };
+
+        const groupStatus = statusMap[status] || [];
+        console.log(groupStatus)
+
+        const grpStatusQuery = groupStatus?.map((e) => e)?.join(',') || '';
+        console.log(grpStatusQuery)
+
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input("userId", userId)
+            .input("is_auditor", is_auditor)
+            .input("eff_status_grp", grpStatusQuery)
+            .input("hasNull", status === 'OPEN' ? true : false) //  initial Eff monitoring data will null
+            .execute('GetAduitEffMonitoring')
+        // console.log(result.recordset)
+        return res.status(200).json({ success: true, data: result.recordset });
+    } catch (error) {
+        console.error(error, 'get_eff_monitoring');
+        return res.status(500).json({ success: false, data: 'Internal server error' });
+    }
+})
+
+
+auditNc.post("/effMonitoringEditAction", verifyJWT, async (req, res) => {
+    try {
+
+        const body = req.body;
+        const actionType = body?.actionType;
+        const ncdataList = body?.ncAuditDataList || []
+
+        // auditor_query is also called
+
+        const auditeeSubmitColumns = ["eff_result", "eff_remarks"]
+        if (actionType === NcActionType.auditor_approve || actionType === NcActionType.auditor_query) {
+            const validate1 = [];
+            ncdataList?.forEach((row) => {
+                // const isEmpty = expectedColumns.every((field) => !row[field] || row[field].toString().trim() === '');
+                const isInvalid = auditeeSubmitColumns.some((field) => {
+                    const value = row[field];
+                    return (
+                        value === null ||
+                        value === undefined ||
+                        (typeof value === 'string' && value.trim() === '') // catches spaces
+                    );
+                });
+                if (isInvalid) validate1.push(row)
+            })
+
+            if (validate1.length > 0) {
+                return res.status(400).json({ success: false, data: 'Is Effective and Eff_remarks are mandatory in all Eff points.' });
+            }
+        }
+
+        const pool = await poolPromise;
+
+        // 
+        await Promise.all(ncdataList?.map(async (e) => {
+            await pool.request()
+                .input("actionType", actionType)
+                .input("audit_nc_id", e?.audit_nc_id)
+                .input("eff_result", e?.eff_result)
+                .input("eff_remarks", e?.eff_remarks)
+                .execute('UpdateAuditEffMonitoring')
+        }))
+
+
+        // Mail action
+        // console.log(ncdataList)
+        const audit_type_id = ncdataList[0]?.audit_type_id;
+        const plant_id = ncdataList[0]?.plant_id;
+        const dept_id = ncdataList[0]?.dept_id;
+        const schedule_detail_id = ncdataList[0]?.schedule_detail_id;
+        const nc_auditor = ncdataList[0]?.nc_auditor;
+        const nc_auditee = ncdataList[0]?.nc_auditee;
+        const userId = req.user;
+
+        const mailDataResult = await pool.request()
+            .input('audit_type_id', audit_type_id)
+            .input('plant_id', plant_id)
+            .input('dept_id', dept_id)
+            .input('schedule_detail_id', schedule_detail_id)
+            .input('userId', userId)
+            .input('CORP_role_id', '5')
+            .input('PLANT_role_id', '6')
+            .input('nc_auditor', nc_auditor)
+            .input('nc_auditee', nc_auditee)
+            .query(`
+                    SELECT 
+                        MAT.Audit_Name,
+                        MP.plant_name,
+                        MD.dept_name,
+                        sh.audit_name AS schedulerName,
+                        emp.emp_name,
+
+                         -- Auditors as nested JSON array
+                        (
+                            SELECT
+                                p.gen_id,
+                                e.emp_name,
+                                e.email
+                            FROM ${TableName.Trn_audit_participants} p
+                            INNER JOIN ${TableName.mst_employees} e ON e.gen_id = p.gen_id
+                            WHERE p.schedule_detail_id = @schedule_detail_id AND p.role = '${trnParticipantRoleEnum.Auditor}'
+                            FOR JSON PATH
+                        ) AS auditors,
+
+                        -- Auditees as nested JSON array
+                        (
+                            SELECT 
+                                p.gen_id,
+                                e.emp_name,
+                                e.email
+                            FROM ${TableName.Trn_audit_participants} p
+                            INNER JOIN ${TableName.mst_employees} e ON e.gen_id = p.gen_id
+                            WHERE p.schedule_detail_id = @schedule_detail_id AND p.role = '${trnParticipantRoleEnum.Auditee}'
+                            FOR JSON PATH
+                        ) AS auditees,
+
+                        -- CORP_ADMIN nested JSON Array
+                        (
+                            SELECT
+                                gen_id,
+                                emp_name,
+                                email
+                            FROM ${TableName.mst_employees}
+                            WHERE role_id=@CORP_role_id AND del_status=0
+                            FOR JSON PATH
+                        ) as corp_admin,
+
+
+                        -- PLANT HEAD nested JSON Array
+                        (
+                            SELECT
+                                gen_id,
+                                emp_name,
+                                email
+                            FROM ${TableName.mst_employees}
+                            WHERE role_id=@PLANT_role_id AND del_status=0
+                            FOR JSON PATH
+                        ) as plant_head,
+
+                    auditor.emp_name as auditor_name,
+                    auditee.emp_name as auditee_name
+
+                    FROM ${TableName.Mst_Digital_Audit_Type} AS MAT
+                    LEFT JOIN ${TableName.mst_plant} AS MP ON MP.plant_id=@plant_id
+                    LEFT JOIN ${TableName.mst_department} AS MD ON MD.dept_id=@dept_id
+                    LEFT JOIN ${TableName.Trn_audit_schedule_details} AS sd ON sd.schedule_detail_id=@schedule_detail_id
+                    LEFT JOIN ${TableName.Trn_audit_schedule_header} AS sh ON sh.schedule_id=sd.schedule_id
+                    LEFT JOIN ${TableName.mst_employees} AS emp ON emp.gen_id=@userId
+                    LEFT JOIN ${TableName.mst_employees} AS auditor ON auditor.gen_id = @nc_auditor
+                    LEFT JOIN ${TableName.mst_employees} AS auditee ON auditee.gen_id = @nc_auditee
+                    WHERE MAT.Audit_Id=@audit_type_id
+                `)
+
+        console.log(mailDataResult?.recordset[0])
+        const auditMailInfo = mailDataResult?.recordset[0];
+
+        // Safely parse all JSON fields
+        const auditors = JSON.parse(auditMailInfo?.auditors || '[]');
+        const auditees = JSON.parse(auditMailInfo?.auditees || '[]');
+        const corpAdmins = JSON.parse(auditMailInfo?.corp_admin || '[]');
+        const plantHeads = JSON.parse(auditMailInfo?.plant_head || '[]');
+
+        // CC: corporate admins + plant heads
+        const ccMailList = [
+            ...corpAdmins.map(e => e?.email).filter(Boolean),
+            ...plantHeads.map(e => e?.email).filter(Boolean)
+        ];
+
+        // Prepare TO list depending on action type
+        let toMailList = [];
+        // if (actionType === NcActionType.auditee_submit) {
+        //     // Send to all auditors except current user
+        //     toMailList = auditors
+        //         // .filter(a => a.email && a.gen_id !== req.user)
+        //         ?.filter(a => a.email)
+        //         ?.map(a => a.email);
+        // }
+        // else
+        if ([NcActionType.auditor_approve, NcActionType.auditor_query].includes(actionType)) {
+            // Send to all auditees except current user
+            toMailList = auditees.filter(a => a.email).map(a => a.email);
+        }
+
+
+        let htmlData = "";
+        let mailSub = "";
+
+        // if (actionType === NcActionType.auditee_submit) {
+        //     mailSub = `${auditMailInfo?.plant_name || ""} _ ${auditMailInfo?.Audit_Name} _ ${auditMailInfo?.schedulerName} [${auditMailInfo?.dept_name?.trim()}] - NC Action Submitted`
+        //     htmlData = generateTemplate({
+        //         variables: {
+        //             auditor_name: auditMailInfo?.auditor_name || "Team",
+        //             audit_type_name: auditMailInfo?.Audit_Name || "",
+        //             dept_name: auditMailInfo?.dept_name?.trim() || "",
+        //             audit_name: auditMailInfo?.schedulerName || "",
+        //             applicationLink: AduitConstant.applicationLink, //,
+        //             regardsBy: auditMailInfo?.emp_name || "Rane"
+        //         },
+        //         fileName: 'submission_audit.html'
+        //     })
+
+        // } else
+        if (actionType === NcActionType.auditor_approve) {
+            mailSub = `${auditMailInfo?.plant_name || ""} _ ${auditMailInfo?.Audit_Name} _ ${auditMailInfo?.schedulerName} [${auditMailInfo?.dept_name?.trim()}] - Effectiveness NC Action Approved`
+            htmlData = generateTemplate({
+                variables: {
+                    auditee_name: auditMailInfo?.auditee_name || "Team",
+                    audit_type_name: auditMailInfo?.Audit_Name || "",
+                    dept_name: auditMailInfo?.dept_name?.trim() || "",
+                    audit_name: auditMailInfo?.schedulerName || "",
+                    applicationLink: AduitConstant.applicationLink, //
+                    regardsBy: auditMailInfo?.emp_name || "Rane"
+                },
+                fileName: 'eff_agree_audit.html'
+            })
+        } else if (actionType === NcActionType.auditor_query) {
+            mailSub = `${auditMailInfo?.plant_name || ""} _ ${auditMailInfo?.Audit_Name} _ ${auditMailInfo?.schedulerName} [${auditMailInfo?.dept_name?.trim()}] - Effectiveness NC Action Rejected`
+            htmlData = generateTemplate({
+                variables: {
+                    auditee_name: auditMailInfo?.auditee_name || "Team",
+                    audit_type_name: auditMailInfo?.Audit_Name || "",
+                    dept_name: auditMailInfo?.dept_name?.trim() || "",
+                    audit_name: auditMailInfo?.schedulerName || "",
+                    applicationLink: AduitConstant.applicationLink, //
+                    regardsBy: auditMailInfo?.emp_name || "Rane"
+                },
+                fileName: 'eff_reject_audit.html'
+            })
+        }
+
+        console.log(actionType, htmlData, mailSub)
+        // console.log(mailSub)
+
+        const check = [NcActionType.auditee_submit, NcActionType.auditor_approve, NcActionType.auditor_query]
+        if (check.find((e) => actionType === e)) {
+            // console.log(scheduleHeader)
+            const mailPayload = {
+                from: mailTriggerFrom,
                 to: toMailList,
                 cc: ccMailList,
                 subject: mailSub,

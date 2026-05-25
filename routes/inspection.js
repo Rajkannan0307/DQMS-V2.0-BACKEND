@@ -7,6 +7,7 @@ import multer from 'multer';
 import * as path from "path";
 import { fileURLToPath } from "url";
 import fs from 'fs';
+import { mailTriggerFrom } from "../utils/mailConfig.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,7 +57,8 @@ let mailconfig = nodemailer.createTransport({
   port: 25,
   secure: false,
   auth: {
-    user: "noreplyrml@ranegroup.com",
+    // user: "noreplyrml@ranegroup.com",
+    user: mailTriggerFrom,
     pass: "",
   },
   tls: {
@@ -379,7 +381,7 @@ async function sendInspectionMail(header_id, emp_id, pool) {
       let mailtext = `The below NC is generated from ${check_list_name} on ${created_on} by ${creadted_by}`;
 
       const mailOptions = {
-        from: "noreplyrml@ranegroup.com",
+        from: mailTriggerFrom,
         to: email,
         cc: ["g.kumar@ranegroup.com", created_by_email],
         subject: "DQMS-Inspection-NC-Action Request",
@@ -676,7 +678,7 @@ inspection.post("/createnc", async (req, res) => {
 
     let mailtext = `The belwo NC is generated from ${check_list_name} on ${created_on} by ${creadted_by}`;
     const mailOptions = {
-      from: "noreplyrml@ranegroup.com",
+      from: mailTriggerFrom,
       to: email,
       cc: ["g.kumar@ranegroup.com", created_by_email],
       subject: "DQMS-Inspection-NC-Action Request",
@@ -738,7 +740,7 @@ inspection.post("/submitnc", async (req, res) => {
       const gen = reciver.recordset[0].gen_id;
 
       const mailbody = {
-        from: "noreplyrml@ranegroup.com",
+        from: mailTriggerFrom,
         to: mail,
         cc: ["g.kumar@ranegroup.com, k.rajamannar@ranegroup.com", usermail],
         subject: `CheckList-${checklist}`,
@@ -802,7 +804,7 @@ inspection.post("/handelncsubmit", async (req, res) => {
       const Ccmail = rejectMail.recordset[0].reviewed_by_mail;
 
       const mailbody = {
-        from: "noreplyrml@ranegroup.com",
+        from: mailTriggerFrom,
         to: Tomail,
         cc: Ccmail,
         subject: 'DQMS-NC Action Rejected',

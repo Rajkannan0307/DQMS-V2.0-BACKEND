@@ -5,6 +5,7 @@ import nodemailer from "nodemailer";
 import { getAuditDateInfo } from "./utils/date.js";
 import generateTemplate from "./mailTemplate/generateTemplate.js";
 import { AduitConstant, scheduleStatusEnum, TableName, trnParticipantRoleEnum } from "./utils/utils.js";
+import { mailTriggerFrom } from "../utils/mailConfig.js";
 
 
 let mailconfig = nodemailer.createTransport({
@@ -13,7 +14,8 @@ let mailconfig = nodemailer.createTransport({
     port: 25,
     secure: false,
     auth: {
-        user: "noreplyrml@ranegroup.com",
+        // user: "noreplyrml@ranegroup.com",
+        user: mailTriggerFrom,
         pass: "",
     },
     tls: {
@@ -320,7 +322,7 @@ auditSchedule.post('/send-mail', verifyJWT, async (req, res) => {
 
         console.log(scheduleHeader)
         const mailPayload = {
-            from: "noreplyrml@ranegroup.com",
+            from: mailTriggerFrom,
             to: toMails,
             cc: ccMails,
             // subject: `${scheduleHeader?.Audit_Name} _ ${scheduleHeader?.plant_id} - ${scheduleHeader?.schedularName}`,

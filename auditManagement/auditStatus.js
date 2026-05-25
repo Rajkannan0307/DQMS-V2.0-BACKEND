@@ -4,6 +4,7 @@ import poolPromise from "../db.js";
 import generateTemplate from "./mailTemplate/generateTemplate.js";
 import nodemailer from "nodemailer";
 import { AduitConstant, scheduleStatusEnum, TableName, trnAuditNcStatus, trnParticipantRoleEnum } from "./utils/utils.js";
+import { mailTriggerFrom } from "../utils/mailConfig.js";
 
 
 let mailconfig = nodemailer.createTransport({
@@ -12,7 +13,8 @@ let mailconfig = nodemailer.createTransport({
     port: 25,
     secure: false,
     auth: {
-        user: "noreplyrml@ranegroup.com",
+        // user: "noreplyrml@ranegroup.com",
+        user: mailTriggerFrom,
         pass: "",
     },
     tls: {
@@ -476,7 +478,7 @@ auditStatus.post('/submit_audit_result', verifyJWT, async (req, res) => {
 
 
         const mailPayload = {
-            from: "noreplyrml@ranegroup.com",
+            from: mailTriggerFrom,
             to: toMails,
             cc: uniqueCCEmails,
             // subject: `${auditTypeResult?.recordset[0]?.Audit_Name} _ ${plant_id} - ${audit_name} _ ${dept_name}`,
@@ -665,45 +667,6 @@ auditStatus.get("/result-checkpoints", verifyJWT, async (req, res) => {
             .input("dept_id", deptId)
             .input("schedule_details_id", schedule_details_id)
             .execute('GetTrnAuditResult')
-
-
-        // .query(`
-        //         SELECT
-        //         tar.*,
-        //         dept.dept_name,
-        //         sh.audit_name,
-        //         sd.status,
-        //         macr.Major_Clause,
-        //         macr.Sub_Clause,
-        //         macr.Check_Point,
-        //         nc.nc_root_cause,
-        //         nc.nc_action, -- corrective action
-        //         nc.target_date,
-        //         nc.nc_auditee,
-        //         nc.nc_action_submitted_on,
-        //         nc.nc_auditor,
-        //         nc.nc_auditor_comment,
-        //         nc.nc_status,
-        //         nc.nc_closed_on,
-        //         auditor.emp_name AS nc_auditor_name,
-        //         auditee.emp_name AS nc_auditee_name
-
-        //         FROM ${TableName.trn_audit_result} as tar
-        //         LEFT JOIN ${TableName.mst_department} AS dept ON dept.dept_id = tar.dept_id
-        //         LEFT JOIN ${TableName.Trn_sudit_schedule_header} AS sh ON sh.schedule_id = tar.schedule_id
-        //         LEFT JOIN ${TableName.Trn_audit_schedule_details} AS sd ON sd.schedule_detail_id = tar.schedule_details_id
-
-        //         --- from revision history get the checksheet data for checkpoints
-        //         LEFT JOIN ${TableName.Mst_Audit_Checkpoint_Revision} AS macr ON macr.Audit_Checksheet_Id = tar.checksheet_id AND macr.Rev_No = tar.Rev_No
-
-        //         --getting the nc data based on scheduler deatil id and checkpoint id
-        //         LEFT JOIN ${TableName.trn_audit_nc} As nc ON nc.schedule_detail_id = tar.schedule_details_id AND nc.audit_checkpoint_id = tar.checkpoint_id
-
-        //         --getting auditor name 
-        //         LEFT JOIN ${TableName.mst_employees} AS auditor ON auditor.gen_id = tar.audited_by
-        //         LEFT JOIN ${TableName.mst_employees} AS auditee ON auditee.gen_id = tar.nc_assigned_to
-        //         WHERE tar.audit_type_id=@audit_type_id AND tar.plant_id=@plant_id AND tar.dept_id=@dept_id AND tar.schedule_details_id=@schedule_details_id
-        //     `)
         return res.status(200).json({ success: true, data: result?.recordset, checksheetData: checksheet });
     } catch (error) {
         console.error(error);

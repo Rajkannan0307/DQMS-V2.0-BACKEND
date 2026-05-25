@@ -1,7 +1,7 @@
 import { Router } from "express"
 import verifyJWT from "../../middleware/auth.js";
 import poolPromise from "../../db.js";
-import { mailconfig } from "../../utils/mailConfig.js";
+import { mailconfig, mailTriggerFrom } from "../../utils/mailConfig.js";
 
 
 const dashboardTypeEnum = {
@@ -275,7 +275,7 @@ const sentInspectionStatusMail = async () => {
             const toMail = currentUserRes.recordset?.map((e) => e?.email);
 
             const mailPayload = {
-                from: "noreplyrml@ranegroup.com",
+                from: mailTriggerFrom,
                 to: toMail,
                 // to: ["a.chandran@ranegroup.com"],
                 cc: ["a.chandran@ranegroup.com", "m.rajkumar@ranegroup.com"],

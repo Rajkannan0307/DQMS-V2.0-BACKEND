@@ -6,10 +6,14 @@ export const mailconfig = nodemailer.createTransport({
     port: 25,
     secure: false,
     auth: {
-        user: "noreplyrml@ranegroup.com",
+        // user: "noreplyrml@ranegroup.com",
+        user: "DQMS@ranegroup.com",
         pass: "",
     },
     tls: {
         rejectUnauthorized: false,
     },
 });
+
+
+export const mailTriggerFrom = 'DQMS@ranegroup.com'
