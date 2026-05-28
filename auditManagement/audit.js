@@ -585,6 +585,7 @@ audit.get('/emp_auditor', verifyJWT, async (req, res) => {
         const currentUser = req.user
         const plant_id = req.query.plant_id;
         const deptId = req.query?.dept_id;
+        const audit_id = req.query?.audit_id;
 
         console.log(plant_id, currentUser)
 
@@ -593,6 +594,7 @@ audit.get('/emp_auditor', verifyJWT, async (req, res) => {
             .input("plant_id", plant_id)
             .input('dept_id', deptId)
             .input("currentUser", currentUser)
+            .input("audit_id", audit_id)
             .execute('GetEmpAuditor')
 
         console.log("AUditor length : ", result.recordset.length)
@@ -603,5 +605,127 @@ audit.get('/emp_auditor', verifyJWT, async (req, res) => {
         return res.status(500).json({ success: false, data: 'Internal server error' })
     }
 })
+
+//==============================================================
+//==============[Mst User Audit]================================
+//==============================================================
+
+
+
+audit.post('/get_mst_user_audit', verifyJWT, async (req, res) => {
+    try {
+        const currentUser = req.user
+        console.log(currentUser)
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .query(`
+                SELECT 
+                    mu.user_audit_id,
+                    mu.emp_id,
+                    e.gen_id,
+                    e.emp_name,
+                    mu.audit_id,
+                    da.Audit_Name as audit_name,
+                    mu.is_active
+                FROM mst_user_audit mu
+                LEFT JOIN Mst_Digital_Audit_Type da on da.Audit_Id = mu.audit_id
+                LEFT JOIN mst_employees e on e.emp_id = mu.emp_id
+            `)
+        return res.status(200).json({ success: true, data: 'success' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, data: 'Internal server error' })
+    }
+})
+
+audit.post("/mst_user_audit_update", verifyJWT, upload.single('file'), async (req, res) => {
+
+    const pool = await poolPromise;
+    const transaction = new sql.Transaction(pool);
+
+    try {
+
+        const currentUser = req.user;
+        const { userAuditList = [], is_auditor, auditUserId, emp_certificate } = req.body;
+        const file = req.file
+
+        console.log(req.body, file)
+
+        await transaction.begin();
+
+        if (Number(is_auditor) === 1) {
+            const convertList = JSON.parse(userAuditList)
+
+            if (!Array.isArray(convertList) || !convertList.length)
+                return res.status(400).json({ success: false, message: "userAuditList is required" });
+
+            const duplicateCheck = new Set();
+
+            for (const item of convertList) {
+                if (!item?.emp_id)
+                    return res.status(400).json({ success: false, message: "emp_id is required" });
+                if (!item?.audit_id)
+                    return res.status(400).json({ success: false, message: "audit_id is required" });
+                const key = `${item.emp_id}_${item.audit_id}`;
+                if (duplicateCheck.has(key))
+                    return res.status(400).json({ success: false, message: "Duplicate audit type found for same employee" });
+                duplicateCheck.add(key);
+            }
+
+            const request = new sql.Request(transaction);
+
+            const table = new sql.Table("#mst_user_audit_temp");
+
+            table.create = true;
+
+            table.columns.add("emp_id", sql.Int);
+            table.columns.add("audit_id", sql.Int);
+            table.columns.add("is_active", sql.Bit);
+
+            convertList.forEach(item =>
+                table.rows.add(item.emp_id, item.audit_id, item.is_active ?? 1)
+            );
+
+
+            await request.bulk(table);
+
+            await request
+                .input("userId", sql.VarChar(100), currentUser)
+                .execute("Mst_User_Audit_UPDATE");
+        } else {
+            const request = new sql.Request(transaction);
+            await request
+                .input('is_active', 0)
+                .input('emp_id', auditUserId)
+                .query(`UPDATE mst_user_audit SET is_active = @is_active Where emp_id = @emp_id`)
+        }
+
+        const request = new sql.Request(transaction);
+        await request
+            .input('is_auditor', is_auditor)
+            .input('emp_id', auditUserId)
+            .input('emp_certificate', file?.filename || emp_certificate || null)
+            .query(`
+                UPDATE mst_employees SET is_auditor = @is_auditor, emp_certificate = @emp_certificate Where emp_id = @emp_id
+            `)
+
+        await transaction.commit()
+
+        return res.status(200).json({
+            success: true,
+            message: "User audit updated successfully"
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        if (transaction) await transaction.rollback();
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+});
 
 export default audit;

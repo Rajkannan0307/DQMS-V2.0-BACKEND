@@ -980,13 +980,13 @@ master.delete("/submenu_permission", verifyJWT, async (req, res) => {
 master.get("/employees", verifyJWT, async (req, res) => {
   try {
     const pool = await poolPromise;
-    const response = await pool.request()
-      .query(`select emp_id,gen_id,emp_name,mobile_no,email,plant_name,e.role_id,r.role_name,e.level,e.plant_id,dept_name,e.dept_id,line_name,e.line_id,designation,e.del_status,e.is_auditor from mst_employees as  e
-              join mst_plant as p on p.plant_id = e.plant_id
-              join mst_department as d on d.dept_id = e.dept_id
-              join mst_line as l on l.line_id = e.line_id
-              join mst_role as r on r.role_id=e.role_id
-              order by e.del_status`);
+    const response = await pool.request().execute('GetMstEmployee')
+    // .query(`select emp_id,gen_id,emp_name,mobile_no,email,plant_name,e.role_id,r.role_name,e.level,e.plant_id,dept_name,e.dept_id,line_name,e.line_id,designation,e.del_status,e.is_auditor from mst_employees as  e
+    //         join mst_plant as p on p.plant_id = e.plant_id
+    //         join mst_department as d on d.dept_id = e.dept_id
+    //         join mst_line as l on l.line_id = e.line_id
+    //         join mst_role as r on r.role_id=e.role_id
+    //         order by e.del_status`);
     res.status(200).json(response.recordset);
   } catch (error) {
     console.error(error);
