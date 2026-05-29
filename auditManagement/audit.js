@@ -728,4 +728,25 @@ audit.post("/mst_user_audit_update", verifyJWT, upload.single('file'), async (re
     }
 });
 
+
+
+audit.get("/employees", verifyJWT, async (req, res) => {
+    try {
+        const is_auditor = req.query.is_auditor;
+        const auditTypeId = req.query.auditTypeId;
+
+        console.log(req.query)
+
+        const pool = await poolPromise;
+        const response = await pool.request()
+            .input('is_auditor', is_auditor)
+            .input('auditTypeId', auditTypeId)
+            .execute('GetMstEmployeeAuditor')
+        res.status(200).json(response.recordset);
+    } catch (error) {
+        console.error(error);
+        res.status(400).json(error);
+    }
+});
+
 export default audit;
