@@ -9,17 +9,32 @@ const auditReports = Router()
 // Get Scheduler headers based on plants
 auditReports.get("/schedulerHeader/:plantId", verifyJWT, async (req, res) => {
     try {
+        const startDate = req.query.startDate
+        const endDate = req.query.endDate
         const plant_id = req.params.plantId
         const auditTypeId = req.query.auditTypeId
+
+        console.log(req.query, req.params)
+
         // console.log(auditTypeId)
         const pool = await poolPromise;
         const result = await pool.request()
+            .input('startDate', startDate)
+            .input('endDate', endDate)
             .input('plant_id', plant_id)
             .input('audit_type_id', auditTypeId)
             .query(`
-                    SELECT * FROM trn_audit_schedule_header 
-                    WHERE plant_id = @plant_id AND audit_type_id = @audit_type_id
+                    SELECT 
+                        * 
+                    FROM trn_audit_schedule_header sh
+                    WHERE sh.audit_date BETWEEN @startDate AND @endDate
+                    AND (@audit_type_id IS NULL OR @audit_type_id = 0 OR sh.audit_type_id = @audit_type_id)
+                    AND (@plant_id IS NULL OR @plant_id = 0 OR sh.plant_id = @plant_id)
                 `)
+        // .query(`
+        //         SELECT * FROM trn_audit_schedule_header 
+        //         WHERE plant_id = @plant_id AND audit_type_id = @audit_type_id
+        //     `)
         return res.status(200).json({ success: true, data: result.recordset });
     } catch (error) {
         console.error(error);

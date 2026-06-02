@@ -749,4 +749,78 @@ audit.get("/employees", verifyJWT, async (req, res) => {
     }
 });
 
+audit.post("/dashboard", verifyJWT, async (req, res) => {
+    try {
+        const startDate = req.body.startDate;
+        const endDate = req.body.endDate;
+        const plant = req.body.plant;
+        const audit_type_id = req.body.audit_type_id;
+        const schedule_id = req.body.schedule_id;
+        const auditor = req.body.auditor;
+
+        console.log(req.body)
+
+        const pool = await poolPromise;
+        const response = await pool.request()
+            .input('startDate', startDate)
+            .input('endDate', endDate)
+            .input('plant', plant)
+            .input('audit_type_id', audit_type_id)
+            .input('schedule_id', schedule_id)
+            .input('auditor', auditor)
+            .execute('GetAuditDashboardReport')
+        res.status(200).json(response.recordsets);
+    } catch (error) {
+        console.error(error);
+        res.status(400).json({ message: error?.message });
+    }
+});
+
+
+audit.post('/getAudior', async (req, res) => {
+    try {
+        const startDate = req.body.startDate;
+        const endDate = req.body.endDate;
+        const plant = req.body.plant;
+        const audit_type_id = req.body.audit_type_id;
+        const schedule_id = req.body.schedule_id;
+
+        console.log(req.body)
+
+        const pool = await poolPromise;
+
+        /* DECLARE @startDate DATE = '2026-01-01', 
+                @endDate DATE = '2026-12-31',
+                @plant INT = NULL,          -- NULL = all plants
+                @audit_type_id INT = NULL,
+                @schedule_id INT = NULL,     -- NULL = all schedules
+                @auditor VARCHAR(100) = '15122' */
+
+        const response = await pool.request()
+            .input('startDate', startDate)
+            .input('endDate', endDate)
+            .input('plant', plant)
+            .input('audit_type_id', audit_type_id)
+            .input('schedule_id', schedule_id)
+            .query(`
+                    SELECT 
+                        ar.audited_by,
+                        e.emp_name
+                    FROM trn_audit_result ar
+                    LEFT JOIN mst_employees e ON e.gen_id = ar.audited_by
+                    LEFT JOIN trn_audit_schedule_details sd ON sd.schedule_detail_id = ar.schedule_details_id
+                    LEFT JOIN trn_audit_schedule_header sh ON sh.schedule_id = sd.schedule_id
+                    WHERE sd.audit_date BETWEEN @startDate AND @endDate
+                    AND (@audit_type_id IS NULL OR @audit_type_id = 0 OR sh.audit_type_id = @audit_type_id)
+                    AND (@plant IS NULL OR @plant = 0 OR sh.plant_id = @plant)
+                    AND (@schedule_id IS NULL OR @schedule_id = 0 OR sh.schedule_id = @schedule_id)
+                    GROUP BY ar.audited_by, e.emp_name
+                `)
+        res.status(200).json(response.recordset);
+    } catch (error) {
+        console.error(error);
+        res.status(400).json({ message: error?.message });
+    }
+})
+
 export default audit;
