@@ -433,7 +433,7 @@ function buildEscalationSummary(data) {
 
 
 
-const remainderMailing = cron.schedule('0 8 * * 1', async () => {
+const remainderMailing = cron.schedule('0 10 * * 1', async () => {
     try {
         console.log('Remainder Mailing');
 
@@ -521,7 +521,7 @@ const remainderMailing = cron.schedule('0 8 * * 1', async () => {
                 const mailPayload = {
                     from: mailTriggerFrom,
                     to,
-                    cc,
+                    cc: [...cc, 'm.rajkumar@ranegroup.com'],
                     subject: 'DQMS: Weekly Pending Summary',
                     html: htmlBody
                 };
@@ -551,10 +551,13 @@ const remainderMailing = cron.schedule('0 8 * * 1', async () => {
 
                 const htmlBody = EscalationMailTemplate(escalationData, 4);
 
+                const cqa_emails = userResponse[0]?.cqa_emails?.split(',') || []
+
+                console.log(cqa_emails, 'cqa email')
                 const mailPayload = {
                     from: mailTriggerFrom,
                     to,
-                    cc,
+                    cc: [...cc, ...cqa_emails],
                     subject: 'DQMS: Weekly Pending Summary',
                     html: htmlBody
                 };
