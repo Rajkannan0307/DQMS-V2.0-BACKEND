@@ -193,9 +193,101 @@ function buildEscalationGroups(
     return groups.filter(g => g.data.length > 0);
 }
 
-function EscalationMailTemplate(data, escalation_level) {
+// function EscalationMailTemplate01(data, escalation_level) {
 
-    const showBucket3 = escalation_level === 4;
+//     const showBucket3 = escalation_level === 4;
+//     const tableRow = data?.map(item => `
+//         <tr>
+//             <td style="padding:10px;border:1px solid #dbe3f0;">
+//                 ${item.plant_id}
+//             </td>
+
+//             <td style="padding:10px;border:1px solid #dbe3f0;">
+//                 ${item.emp_name}
+//             </td>
+
+//             <td style="padding:10px;border:1px solid #dbe3f0;text-align:center;">
+//                 ${item.bucket1}
+//             </td>
+
+//             <td style="padding:10px;border:1px solid #dbe3f0;text-align:center;">
+//                 ${item.bucket2}
+//             </td>
+//             ${showBucket3
+//             ? `
+//                     <td style="padding:10px;border:1px solid #dbe3f0;text-align:center;">
+//                         ${item.bucket3}
+//                     </td>
+//                     `
+//             : ''
+//         }
+//         </tr>
+//     `).join('');
+
+//     const htmlBody = `
+//         <div style="font-family: Arial, sans-serif; color: #333333; font-size: 10px;">
+//             <table
+//                 cellpadding="0"
+//                 cellspacing="0"
+//                 border="0"
+//                 width="100%"
+//                 style="
+//                     border-collapse: collapse;
+//                     width: 100%;
+//                     border: 1px solid #dbe3f0;
+//                 "
+//             >
+//                 <thead>
+//                     <tr>
+//                         <th style="background:#091c66;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:left;">
+//                             Plant
+//                         </th>
+//                         <th style="background:#091c66;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:left;">
+//                             User
+//                         </th>
+//                         <th style="background:#fcdb03;color:#030303;padding:12px;border:1px solid #ecf0dbff;text-align:center;">
+//                             1-7 Days
+//                         </th>
+//                         <th style="background:#d48002;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:center;">
+//                             8-14 Days
+//                         </th>
+
+//                         ${showBucket3
+//             ? `
+//                             <th style="background:#eb1410;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:center;">
+//                                 >14 Days
+//                             </th>
+//                             `
+//             : ''
+//         }   
+//                     </tr>
+//                 </thead>
+
+//                 <tbody>
+//                     ${tableRow}
+//                 </tbody>
+//             </table>
+
+//             <div style="width: 100%; height: 1px; background: #b6b6b6; margin: 15px 0"></div>
+
+//             <div style="color: #db7272; margin: 0">
+//                 <p>
+//                     This is an automated notification from the DQMS. Don't reply to this sender mail id.
+//                 </p>
+//             </div>
+//         </div>
+//     `;
+
+//     return htmlBody;
+// }
+
+function EscalationMailTemplateRev02(data, escalation_level) {
+    // Logic: 
+    // If escalation_level === 4 -> show ONLY Bucket 3 (>14 Days)
+    // Else -> show Bucket 2 (8-14 Days) AND Bucket 3 (>14 Days)
+    const showBucket2 = escalation_level !== 4;
+    const showBucket3 = true; // Always shown based on the new requirement
+
     const tableRow = data?.map(item => `
         <tr>
             <td style="padding:10px;border:1px solid #dbe3f0;">
@@ -206,21 +298,19 @@ function EscalationMailTemplate(data, escalation_level) {
                 ${item.emp_name}
             </td>
 
-            <td style="padding:10px;border:1px solid #dbe3f0;text-align:center;">
-                ${item.bucket1}
-            </td>
-
-            <td style="padding:10px;border:1px solid #dbe3f0;text-align:center;">
-                ${item.bucket2}
-            </td>
+            ${showBucket2
+            ? `
+                <td style="padding:10px;border:1px solid #dbe3f0;text-align:center;">
+                    ${item.bucket2}
+                </td>
+            ` : ''}
+            
             ${showBucket3
             ? `
-                    <td style="padding:10px;border:1px solid #dbe3f0;text-align:center;">
-                        ${item.bucket3}
-                    </td>
-                    `
-            : ''
-        }
+                <td style="padding:10px;border:1px solid #dbe3f0;text-align:center;">
+                    ${item.bucket3}
+                </td>
+            ` : ''}
         </tr>
     `).join('');
 
@@ -245,21 +335,20 @@ function EscalationMailTemplate(data, escalation_level) {
                         <th style="background:#091c66;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:left;">
                             User
                         </th>
-                        <th style="background:#fcdb03;color:#030303;padding:12px;border:1px solid #ecf0dbff;text-align:center;">
-                            1-7 Days
-                        </th>
+                        
+                        ${showBucket2
+            ? `
                         <th style="background:#d48002;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:center;">
                             8-14 Days
                         </th>
+                        ` : ''}
 
                         ${showBucket3
             ? `
-                            <th style="background:#eb1410;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:center;">
-                                >14 Days
-                            </th>
-                            `
-            : ''
-        }   
+                        <th style="background:#eb1410;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:center;">
+                            >14 Days
+                        </th>
+                        ` : ''}   
                     </tr>
                 </thead>
 
@@ -310,127 +399,6 @@ function buildEscalationSummary(data) {
         }, {})
     );
 }
-
-
-// const remainderMailing = cron.schedule('0 8 * * 1', async () => {
-//     // const remainderMailing = cron.schedule('*/10 * * * * *', async () => {
-//     console.log('Remainder Mailing');
-//     const pool = await poolPromise;
-//     const request = await pool.request();
-//     const result = await request.execute('ProcessRemainderMail')
-
-//     const response = result?.recordsets || []
-//     const userResponse = response[0]
-
-//     if (userResponse.length > 0) {
-
-//         // Single User Escalation
-//         const grpData = Object.values(groupByColumn(userResponse, 'email'))
-//         console.log(grpData, 'Remainder Users')
-//         await Promise.all(grpData?.map(async (item) => {
-//             const htmlBody = RemainderMailTemplate(item?.data || [])
-
-//             // console.log(htmlBody)
-//             const mailPayload = {
-//                 from: mailTriggerFrom,
-//                 to: item?.to,
-//                 // cc: item?.cc,
-//                 // to: ['m.rajkumar@ranegroup.com', 'a.chandran@ranegroup.com'],
-//                 subject: 'DQMS: Weekly Pending Summary',
-//                 html: htmlBody
-//             }
-
-//             console.log("mailPayload", "from : " + mailPayload.from, " to : " + mailPayload.to, " subject : " + mailPayload.subject)
-
-//             mailconfig.sendMail(mailPayload, function (error, info) {
-//                 if (error) {
-//                     console.log('Error Sending Mail', error);
-//                 } else {
-//                     console.log("Email sent: " + info.response);
-//                 }
-//             })
-//         }))
-
-//         const l3Groups = buildEscalationGroups(userResponse, {
-//             emailField: "l3_email",
-//             includeLevels: [1, 2, 3, 4]
-//         });
-
-//         const l4Groups = buildEscalationGroups(userResponse, {
-//             emailField: "l4_email",
-//             includeLevels: [1, 2, 3, 4],
-//             extraCcField: "l3_email"
-//         });
-
-//         // console.log("l3Groups", l3Groups)
-//         // console.log("l4Groups", l4Groups)
-
-
-//         // L3 Escalation Mail
-//         for (const item of l3Groups) {
-//             const { to, cc, data } = item
-//             const escalationData = buildEscalationSummary(data).filter((e) => e.bucket2 > 0)
-//             console.log(escalationData, "L3 Escalation Data")
-//             if (escalationData.length > 0) {
-//                 const htmlBody = EscalationMailTemplate(escalationData, 3)
-//                 const mailPayload = {
-//                     from: mailTriggerFrom,
-//                     to: to,
-//                     cc: cc,
-//                     // to: ['m.rajkumar@ranegroup.com', 'a.chandran@ranegroup.com'],
-//                     subject: 'DQMS: Weekly Pending Summary',
-//                     html: htmlBody
-//                 }
-
-//                 console.log("mailPayload", "from : " + mailPayload.from, " to : " + mailPayload.to, " subject : " + mailPayload.subject, " CC :", mailPayload.cc)
-
-//                 mailconfig.sendMail(mailPayload, function (error, info) {
-//                     if (error) {
-//                         console.log('Error Sending Mail', error);
-//                     } else {
-//                         console.log("Email sent: " + info.response);
-//                     }
-//                 })
-//             } else {
-//                 console.log('Escalation Data for L3 is Empty')
-//             }
-//         }
-
-
-//         // L4 Escalation Mail
-//         for (const item of l4Groups) {
-//             const { to, cc, data } = item
-//             const escalationData = buildEscalationSummary(data).filter((e) => e.bucket3 > 0)
-//             console.log(escalationData, "L4 Escalation Data")
-//             if (escalationData.length > 0) {
-//                 const htmlBody = EscalationMailTemplate(escalationData, 4)
-
-//                 // console.log(htmlBody)
-//                 const mailPayload = {
-//                     from: mailTriggerFrom,
-//                     to: to,
-//                     cc: cc,
-//                     // to: ['m.rajkumar@ranegroup.com', 'a.chandran@ranegroup.com'],
-//                     subject: 'DQMS: Weekly Pending Summary',
-//                     html: htmlBody
-//                 }
-
-//                 console.log("mailPayload", "from : " + mailPayload.from, " to : " + mailPayload.to, " subject : " + mailPayload.subject, " CC :", mailPayload.cc)
-
-//                 mailconfig.sendMail(mailPayload, function (error, info) {
-//                     if (error) {
-//                         console.log('Error Sending Mail', error);
-//                     } else {
-//                         console.log("Email sent: " + info.response);
-//                     }
-//                 })
-//             } else {
-//                 console.log('Escalation Data for L4 is Empty')
-//             }
-//         }
-//     }
-// })
-
 
 
 const remainderMailing = cron.schedule('0 10 * * 1', async () => {
@@ -516,7 +484,7 @@ const remainderMailing = cron.schedule('0 10 * * 1', async () => {
                     continue;
                 }
 
-                const htmlBody = EscalationMailTemplate(escalationData, 3);
+                const htmlBody = EscalationMailTemplateRev02(escalationData, 3);
 
                 const mailPayload = {
                     from: mailTriggerFrom,
@@ -549,7 +517,8 @@ const remainderMailing = cron.schedule('0 10 * * 1', async () => {
                     continue;
                 }
 
-                const htmlBody = EscalationMailTemplate(escalationData, 4);
+                const htmlBody = EscalationMailTemplateRev02(escalationData, 4);
+                console.log(htmlBody)
 
                 const cqa_emails = userResponse[0]?.cqa_emails?.split(',') || []
 

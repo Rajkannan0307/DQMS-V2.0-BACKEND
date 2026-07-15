@@ -30,10 +30,13 @@ const auditSchedule = Router();
 auditSchedule.get('/getHeader', verifyJWT, async (req, res) => {
     try {
         const audit_id = req.query.audit_id;
+        const is_email_sent = req.query.is_email_sent || 0;
+
         const pool = await poolPromise;
         const result = await pool.request()
             .input("audit_type_id", audit_id)
-            .query(`select * from ${TableName.Trn_audit_schedule_header} where audit_type_id=@audit_type_id`)
+            .input("is_email_sent", is_email_sent)
+            .query(`select * from ${TableName.Trn_audit_schedule_header} where audit_type_id=@audit_type_id AND is_email_sent = @is_email_sent`)
         return res.status(200).json({ success: true, data: result.recordset });
     } catch (error) {
         console.error(error);
