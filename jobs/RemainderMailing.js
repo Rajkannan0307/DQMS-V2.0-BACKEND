@@ -144,28 +144,41 @@ function RemainderMailTemplate(data) {
 }
 
 
-
-
 function buildEscalationGroups(
     data,
     {
         emailField,
         includeLevels,
         extraCcField = null
-    }
+    },
+    level // 3 or 4
 ) {
+    // Helper to safely split comma-separated emails into a clean array
+    const parseEmails = (emailStr) => {
+        if (!emailStr) return [];
+        return emailStr.split(',').map(e => e.trim()).filter(Boolean);
+    };
 
     const groups = Object.values(
         data.reduce((acc, row) => {
-            const toEmail = row[emailField];
+            const toEmails = parseEmails(row[emailField]);
+
             // Skip rows where TO email is null/empty
-            if (!toEmail || !toEmail.trim()) {
+            if (toEmails.length === 0) {
                 return acc;
             }
-            const key = `${row.company_id}_${row.plant_id}_${row.dept_id}_${toEmail}`;
+
+            // Sort emails so that "a@b.com, c@d.com" groups with "c@d.com, a@b.com"
+            const toEmailKey = toEmails.sort().join(',');
+
+            // --- FIXED: Conditional grouping based on level ---
+            const key = level === 4
+                ? `${row.company_id}_${row.plant_id}_${toEmailKey}` // L4: Company + Plant
+                : `${row.company_id}_${row.plant_id}_${row.dept_id}_${toEmailKey}`; // L3: Company + Plant + Dept
+
             if (!acc[key]) {
                 acc[key] = {
-                    to: toEmail,
+                    to: toEmailKey, // Keeping as a clean comma-separated string
                     cc: [],
                     data: []
                 };
@@ -176,110 +189,34 @@ function buildEscalationGroups(
     );
 
     groups.forEach(group => {
-        const cc = group.data
+        const cc = [];
+
+        // 1. Extract CCs based on included levels (handling multiple emails per row)
+        group.data
             .filter(x => includeLevels.includes(x.level))
-            .map(x => x.email)
-            .filter(email => email && email.trim());
+            .forEach(x => {
+                cc.push(...parseEmails(x.email));
+            });
+
+        // 2. Extract extra CCs (handling multiple emails per row)
         if (extraCcField) {
-            cc.push(
-                ...group.data
-                    .map(x => x[extraCcField])
-                    .filter(email => email && email.trim())
-            );
+            group.data.forEach(x => {
+                cc.push(...parseEmails(x[extraCcField]));
+            });
         }
-        group.cc = [...new Set(cc)];
+
+        // 3. Deduplicate CCs
+        const uniqueCc = [...new Set(cc)];
+
+        // Optional Best Practice: Remove anyone from CC who is already in the TO field
+        const toArray = parseEmails(group.to);
+        group.cc = uniqueCc.filter(email => !toArray.includes(email));
     });
+
     // Optional: remove groups with no data
     return groups.filter(g => g.data.length > 0);
 }
 
-// function EscalationMailTemplate01(data, escalation_level) {
-
-//     const showBucket3 = escalation_level === 4;
-//     const tableRow = data?.map(item => `
-//         <tr>
-//             <td style="padding:10px;border:1px solid #dbe3f0;">
-//                 ${item.plant_id}
-//             </td>
-
-//             <td style="padding:10px;border:1px solid #dbe3f0;">
-//                 ${item.emp_name}
-//             </td>
-
-//             <td style="padding:10px;border:1px solid #dbe3f0;text-align:center;">
-//                 ${item.bucket1}
-//             </td>
-
-//             <td style="padding:10px;border:1px solid #dbe3f0;text-align:center;">
-//                 ${item.bucket2}
-//             </td>
-//             ${showBucket3
-//             ? `
-//                     <td style="padding:10px;border:1px solid #dbe3f0;text-align:center;">
-//                         ${item.bucket3}
-//                     </td>
-//                     `
-//             : ''
-//         }
-//         </tr>
-//     `).join('');
-
-//     const htmlBody = `
-//         <div style="font-family: Arial, sans-serif; color: #333333; font-size: 10px;">
-//             <table
-//                 cellpadding="0"
-//                 cellspacing="0"
-//                 border="0"
-//                 width="100%"
-//                 style="
-//                     border-collapse: collapse;
-//                     width: 100%;
-//                     border: 1px solid #dbe3f0;
-//                 "
-//             >
-//                 <thead>
-//                     <tr>
-//                         <th style="background:#091c66;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:left;">
-//                             Plant
-//                         </th>
-//                         <th style="background:#091c66;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:left;">
-//                             User
-//                         </th>
-//                         <th style="background:#fcdb03;color:#030303;padding:12px;border:1px solid #ecf0dbff;text-align:center;">
-//                             1-7 Days
-//                         </th>
-//                         <th style="background:#d48002;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:center;">
-//                             8-14 Days
-//                         </th>
-
-//                         ${showBucket3
-//             ? `
-//                             <th style="background:#eb1410;color:#ffffff;padding:12px;border:1px solid #dbe3f0;text-align:center;">
-//                                 >14 Days
-//                             </th>
-//                             `
-//             : ''
-//         }   
-//                     </tr>
-//                 </thead>
-
-//                 <tbody>
-//                     ${tableRow}
-//                 </tbody>
-//             </table>
-
-//             <div style="width: 100%; height: 1px; background: #b6b6b6; margin: 15px 0"></div>
-
-//             <div style="color: #db7272; margin: 0">
-//                 <p>
-//                     This is an automated notification from the DQMS. Don't reply to this sender mail id.
-//                 </p>
-//             </div>
-//         </div>
-//     `;
-
-//     return htmlBody;
-// }
 
 function EscalationMailTemplateRev02(data, escalation_level) {
     // Logic: 
@@ -370,10 +307,19 @@ function EscalationMailTemplateRev02(data, escalation_level) {
     return htmlBody;
 }
 
-function buildEscalationSummary(data) {
+function buildEscalationSummary(data = []) {
+    // Failsafe: if data is undefined or not an array, return early
+    if (!data || !Array.isArray(data)) {
+        return [];
+    }
+
     return Object.values(
         data.reduce((acc, row) => {
-            const key = row.email;
+            const key = row?.email;
+
+            // Failsafe: skip if there is no email on this row
+            if (!key) return acc;
+
             if (!acc[key]) {
                 acc[key] = {
                     plant_id: row?.plant_id,
@@ -384,7 +330,7 @@ function buildEscalationSummary(data) {
                     bucket3: 0
                 };
             }
-            switch (row.aging_bucket) {
+            switch (row?.aging_bucket) {
                 case 1:
                     acc[key].bucket1++;
                     break;
@@ -458,22 +404,28 @@ const remainderMailing = cron.schedule('0 10 * * 1', async () => {
         // ------------------------
         // Build Escalation Groups
         // ------------------------
+        // ADDED: Passed '3' as the level parameter
         const l3Groups = buildEscalationGroups(userResponse, {
             emailField: "l3_email",
             includeLevels: [1, 2, 3, 4]
-        });
+        }, 3);
 
+        // ADDED: Passed '4' as the level parameter for Plant-level grouping
         const l4Groups = buildEscalationGroups(userResponse, {
             emailField: "l4_email",
             includeLevels: [1, 2, 3, 4],
             extraCcField: "l3_email"
-        });
+        }, 4);
 
         // ------------------------
         // L3 Escalation Mail
         // ------------------------
-        for (const item of l3Groups) {
+        // ADDED .flat() to ensure we are looping over objects, not a nested array
+        for (const item of l3Groups.flat()) {
             try {
+                // Failsafe: Ensure item is a valid object before destructuring
+                if (!item || typeof item !== 'object') continue;
+
                 const { to, cc, data } = item;
 
                 const escalationData = buildEscalationSummary(data)
@@ -489,13 +441,12 @@ const remainderMailing = cron.schedule('0 10 * * 1', async () => {
                 const mailPayload = {
                     from: mailTriggerFrom,
                     to,
-                    cc: [...cc, 'm.rajkumar@ranegroup.com'],
+                    cc: [...new Set([...(cc || []), 'm.rajkumar@ranegroup.com'])], // Safe CC merge
                     subject: 'DQMS: Weekly Pending Summary',
                     html: htmlBody
                 };
 
                 await mailconfig.sendMail(mailPayload);
-
                 console.log(`L3 escalation mail sent to ${to}`);
             } catch (err) {
                 console.error(`Failed to send L3 escalation mail`, err);
@@ -505,8 +456,11 @@ const remainderMailing = cron.schedule('0 10 * * 1', async () => {
         // ------------------------
         // L4 Escalation Mail
         // ------------------------
-        for (const item of l4Groups) {
+        // ADDED .flat() here as well
+        for (const item of l4Groups.flat()) {
             try {
+                if (!item || typeof item !== 'object') continue;
+
                 const { to, cc, data } = item;
 
                 const escalationData = buildEscalationSummary(data)
@@ -518,21 +472,22 @@ const remainderMailing = cron.schedule('0 10 * * 1', async () => {
                 }
 
                 const htmlBody = EscalationMailTemplateRev02(escalationData, 4);
-                console.log(htmlBody)
 
-                const cqa_emails = userResponse[0]?.cqa_emails?.split(',') || []
+                // Clean up CQA emails
+                const cqa_emails = (userResponse[0]?.cqa_emails || "")
+                    .split(',')
+                    .map(e => e.trim())
+                    .filter(Boolean);
 
-                console.log(cqa_emails, 'cqa email')
                 const mailPayload = {
                     from: mailTriggerFrom,
                     to,
-                    cc: [...cc, ...cqa_emails],
+                    cc: [...new Set([...(cc || []), ...cqa_emails])], // Safe CC deduplication
                     subject: 'DQMS: Weekly Pending Summary',
                     html: htmlBody
                 };
 
                 await mailconfig.sendMail(mailPayload);
-
                 console.log(`L4 escalation mail sent to ${to}`);
             } catch (err) {
                 console.error(`Failed to send L4 escalation mail`, err);
