@@ -315,7 +315,7 @@ operationMaster.get("/partchecklist", async (req, res) => {
     let response = await pool
       .request()
       .query(
-        `select check_list_id,check_list_name from mst_check_list where type='part' and  del_status=0 and plant_id=${plant_id}`
+        `select check_list_id,check_list_name,inspection_id from mst_check_list where type='part' and  del_status=0 and plant_id=${plant_id}`
       );
     res.status(200).json(response.recordset);
   } catch (error) {
@@ -567,9 +567,10 @@ operationMaster.get("/checklistMapping", async (req, res) => {
     let { plant_id, role_id } = req.query;
     const pool = await poolPromise;
     const response = await pool.request().query(`
-        select checklist_mapping_id,c.plant_id,p.part_name,p.part_id,part_number,c.check_list_name,c.check_list_id from mst_checklist_mapping as m
+        select checklist_mapping_id,c.plant_id,p.part_name,p.part_id,part_number,c.check_list_name,c.check_list_id,c.inspection_id,it.inspection_name as inspection_type from mst_checklist_mapping as m
           join mst_part as p on p.part_id=m.part_id
           join mst_check_list as c on c.check_list_id=m.checklist_id
+          left join mst_inspection_type as it on it.inspection_id=c.inspection_id
         where m.del_status=0 and c.del_status=0 and p.del_status=0 ${(role_id == 1 || role_id == 5) ? "" : `and m.plant_id=${plant_id}`
       }`);
     res.status(200).json(response.recordset);
@@ -579,39 +580,51 @@ operationMaster.get("/checklistMapping", async (req, res) => {
   }
 });
 
+// Single endpoint for both Add and Edit — presence of checklist_mapping_id decides update vs insert.
 operationMaster.post("/checklistMapping", async (req, res) => {
   try {
-    let { checklist_id, part_id, plant_id, user } = req.body;
+    let { checklist_mapping_id, checklist_id, part_id, plant_id, user } = req.body;
     let pool = await poolPromise;
+    let isEdit = checklist_mapping_id != undefined && checklist_mapping_id !== null && checklist_mapping_id !== "";
 
     const Insp_check = await pool.request()
       .query(`
-         select inspection_id from mst_check_list where check_list_id=${checklist_id}  
+         select inspection_id from mst_check_list where check_list_id=${checklist_id}
       `);
 
     const Insp_Id = Insp_check.recordset[0].inspection_id;
     console.log('insp id', Insp_Id)
+
+    // Duplicate rule: an active mapping already exists for this Part Number + Inspection Type
+    // (excluding the record being edited, when editing)
     let checkDuplicate = await pool
       .request()
       .query(
-        `select m.* from mst_checklist_mapping m
-left join mst_check_list c on c.check_list_id = m.checklist_id
- where m.part_id='${part_id}' and m.checklist_id='${checklist_id}' and m.plant_id='${plant_id}' and m.del_status=0 and c.inspection_id=${Insp_Id}`
+        `select m.checklist_mapping_id from mst_checklist_mapping m
+        join mst_check_list c on c.check_list_id = m.checklist_id
+        where m.part_id='${part_id}' and m.plant_id='${plant_id}' and m.del_status=0 and c.del_status=0 and c.inspection_id=${Insp_Id}
+        ${isEdit ? `and m.checklist_mapping_id<>${checklist_mapping_id}` : ""}`
       );
 
-    console.log(`select m.* from mst_checklist_mapping m
-left join mst_check_list c on c.check_list_id = m.checklist_id
- where m.part_id='${part_id}' and m.checklist_id='${checklist_id}' and m.plant_id='${plant_id}' and m.del_status=0 and c.inspection_id=${Insp_Id}`)
-    if (checkDuplicate.rowsAffected >= 1) {
+    if (checkDuplicate.recordset.length >= 1) {
       return res
         .status(200)
-        .json({ message: "Selected Checklist Alredy Mapped to this Part" });
+        .json({ message: "This Part Number and Inspection Type combination is already mapped" });
     }
-    let response = await pool.request()
-      .query(`insert into mst_checklist_mapping (plant_id,checklist_id,part_id,created_by,created_on,del_status)
+
+    if (isEdit) {
+      let response = await pool.request()
+        .query(`update mst_checklist_mapping set checklist_id='${checklist_id}',part_id='${part_id}',plant_id='${plant_id}',modified_by='${user}',modified_on=CURRENT_TIMESTAMP where checklist_mapping_id=${checklist_mapping_id}`);
+      if (response.rowsAffected[0] == 1) {
+        return res.status(201).json({ status: "success" });
+      }
+    } else {
+      let response = await pool.request()
+        .query(`insert into mst_checklist_mapping (plant_id,checklist_id,part_id,created_by,created_on,del_status)
 					values('${plant_id}','${checklist_id}','${part_id}','${user}',CURRENT_TIMESTAMP,0)`);
-    if (response.rowsAffected == 1) {
-      res.status(201).json({ status: "success" });
+      if (response.rowsAffected == 1) {
+        return res.status(201).json({ status: "success" });
+      }
     }
   } catch (error) {
     console.error(error);
