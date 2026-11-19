@@ -383,7 +383,7 @@ async function sendInspectionMail(header_id, emp_id, pool) {
       const mailOptions = {
         from: mailTriggerFrom,
         to: email,
-        cc: ["g.kumar@ranegroup.com", created_by_email],
+        cc: [created_by_email],
         subject: "DQMS-Inspection-NC-Action Request",
         html: `
                     <p>Dear ${emp_name},</p>
@@ -680,7 +680,7 @@ inspection.post("/createnc", async (req, res) => {
     const mailOptions = {
       from: mailTriggerFrom,
       to: email,
-      cc: ["g.kumar@ranegroup.com", created_by_email],
+      cc: [created_by_email],
       subject: "DQMS-Inspection-NC-Action Request",
       html: `<p>Dear ${emp_name},</p><p style="margin-left:50px">${mailtext}</p>
       <p style="margin-left:50px">Kindly Login into DQMS and take required action.</p>
@@ -742,7 +742,7 @@ inspection.post("/submitnc", async (req, res) => {
       const mailbody = {
         from: mailTriggerFrom,
         to: mail,
-        cc: ["g.kumar@ranegroup.com, k.rajamannar@ranegroup.com", usermail],
+        cc: [usermail],
         subject: `CheckList-${checklist}`,
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">     
